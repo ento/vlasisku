@@ -12,3 +12,9 @@ pages = Module(__name__)
 @etag
 def help():
     return render_response('help.html')
+
+
+@pages.route('/cheatsheet')
+@etag
+def cheatsheet():
+    return render_response('cheatsheet.html')
