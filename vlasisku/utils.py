@@ -13,7 +13,7 @@ import os
 import signal
 
 from pqs import Parser
-from flask import current_app, request
+from flask import current_app, request, json
 import jellyfish
 
 
@@ -85,6 +85,19 @@ def compound2affixes(compound):
     return []
 
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, '__json__'): 
+            return getattr(obj, '__json__')()
+        return super(JSONEncoder, self).default(obj)
+
+
+def jsonify(*args, **kwargs):
+    return current_app.response_class(
+        json.dumps(dict(*args, **kwargs),
+                   indent=None if request.is_xhr else 2,
+                   cls=JSONEncoder),
+        mimetype='application/json')
 
 
 def etag(f):

@@ -14,6 +14,7 @@ ETAG = database.root.etag
 app.config.from_object(__name__)
 
 app.register_module(components.app)
+app.register_module(components.export)
 app.register_module(components.general)
 app.register_module(components.opensearch)
 app.register_module(components.pages, url_prefix='/page')

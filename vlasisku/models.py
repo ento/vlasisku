@@ -57,6 +57,10 @@ class Entry(object):
     def __repr__(self):
         return '<Entry %s>' % self.word
 
+    def __json__(self):
+        data = dict([(k, v) for k, v in vars(self).iteritems() if k not in ('db', 'definition', 'notes', 'textdefinition', 'textnotes')])
+        return data
+
     def components(self):
         """Build HTML that links the affixes in a compound
         to their corresponding words, with definitions in the link tooltips.
