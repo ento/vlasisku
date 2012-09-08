@@ -95,7 +95,7 @@ d3.json("/entries.json", function(root) {
       index = d3.nest()
       .key(function(d) { return zeroFill(layout.categorize(d).mainIndex, 2); })
       .sortKeys(d3.ascending)
-      .key(function(d) { return layout.categorize(d).subIndex; })
+      .key(function(d) { return zeroFill(layout.categorize(d).subIndex, 2); })
       .sortKeys(d3.ascending)
       .sortValues(function(a, b) { return d3.ascending(a.word, b.word); })
       .entries(nodes);
