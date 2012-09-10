@@ -1,3 +1,22 @@
 .background {
   fill: #fff;
 }
+
+.entry text {
+  fill: #000;
+  stroke: #444;
+}
+
+.entry.selected text {
+  fill: #f00;
+  stroke: #f00;
+  font-size: 20px;
+  box-shadow: 2px 2px 2px #333;
+}
+
+#bounds {
+  fill: transparent;
+/*  stroke: #00f;*/
+  stroke: transparent;
+  stroke-width: 2px;
+}

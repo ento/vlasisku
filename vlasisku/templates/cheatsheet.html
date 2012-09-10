@@ -4,7 +4,10 @@
       xmlns:py="http://genshi.edgewall.org/">
   <xi:include href="layout.html"/>
   <head>
-    <script type="text/javascript" src="http://d3js.org/d3.v2.min.js?2.8.1"/>
+<!--    <script type="text/javascript" src="http://d3js.org/d3.v2.min.js?2.8.1"/> -->
+    <script type="text/javascript" src="${url_for('.static', filename='sammy-0.7.1.min.js')}"/>
+    <script type="text/javascript" src="${url_for('.static', filename='d3.v2.min.js')}"/>
+    
     <link rel="stylesheet" href="${url_for('.static', filename='cheatsheet.css')}" type="text/css" media="screen, projection, print"/>
   </head>
   <body>
