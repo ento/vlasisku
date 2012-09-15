@@ -178,7 +178,6 @@ d3.json("/entries.json?group_by=type", function(root) {
     var d = d3.select(this).datum();
     d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
       $('#inspector').text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
-               console.log(response);
     });
   }
 
@@ -388,7 +387,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     changeLayout();
   });
 
-  $(function() { app.run('#' + location.hash); });
+  $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });
 
 function isConfusable(a, b) {
