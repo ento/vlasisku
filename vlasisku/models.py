@@ -58,8 +58,9 @@ class Entry(object):
         return '<Entry %s>' % self.word
 
     def __json__(self):
-        data = dict([(k, v) for k, v in vars(self).iteritems() if k not in ('db', 'definition', 'notes', 'textdefinition', 'textnotes')])
-        return data
+        rv = dict(vars(self))
+        rv.pop('db')
+        return rv
 
     def components(self):
         """Build HTML that links the affixes in a compound

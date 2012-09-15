@@ -24,7 +24,7 @@ var svg = d3.select("#cheatsheet").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("/entries.json", function(root) {
+d3.json("/entries.json?group_by=type", function(root) {
 
   var index = [],
       nodes = root.cmavo,
@@ -138,7 +138,7 @@ d3.json("/entries.json", function(root) {
     y.rangeBands([0, height], entryPadding);
     d3.select('#canvas')
       .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
+      .attr("height", height + margin.top + margin.bottom);
   }
 
   var entries = svg.selectAll(".entry")
@@ -175,12 +175,15 @@ d3.json("/entries.json", function(root) {
   }
 
   function mouseover(p) {
-    d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
-    d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
+    var d = d3.select(this).datum();
+    d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
+      $('#inspector').text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
+               console.log(response);
+    });
   }
 
   function mouseout() {
-    d3.selectAll("text").classed("active", false);
+    //d3.selectAll("text").classed("active", false);
   }
 
   function currentLayout() {
