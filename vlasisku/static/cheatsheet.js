@@ -14,8 +14,8 @@ var margin = {top: 80, right: 0, bottom: 10, left: 80},
     entryPadding = 0.2,
     width = colSize * entryWidth;
 
-var x = d3.scale.ordinal().domain(d3.range(colSize)).rangeBands([0, colSize * entryWidth], entryPadding),
-    y = d3.scale.ordinal(),
+var x = d3.scale.linear().domain([0, colSize]).range([0, colSize * entryWidth]),
+    y = d3.scale.linear(),
     c = d3.scale.category20().domain(d3.range(20));
 
 var svg = d3.select("#cheatsheet").append("svg")
@@ -134,8 +134,7 @@ d3.json("/entries.json?group_by=type", function(root) {
 
   function updateScale(layout) {
     var height = layout.coords.yMax * entryHeight;
-    y.domain(d3.range(layout.coords.yMax));
-    y.rangeBands([0, height], entryPadding);
+    y.domain([0, layout.coords.yMax]).range([0, height]);
     d3.select('#canvas')
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom);
@@ -185,7 +184,9 @@ d3.json("/entries.json?group_by=type", function(root) {
     var t = svg.transition().duration(1000);
     t.selectAll(".entry")
       .delay(function(d, i) { return layout.coords.xMap[d.word] * 4; })
-      .attr("transform", function(d) { return "translate(" + layout.x(d) + "," + layout.y(d) + ")"; });
+      .attr("transform", function(d) {
+         return "translate(" + layout.x(d) + "," + layout.y(d) + ")";
+      });
 
     changeSelection();
   }
