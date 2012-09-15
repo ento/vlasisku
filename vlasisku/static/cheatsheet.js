@@ -174,17 +174,6 @@ d3.json("/entries.json?group_by=type", function(root) {
     return root.cll[keys[0]][0];
   }
 
-  function mouseover(p) {
-    var d = d3.select(this).datum();
-    d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
-      $('#inspector').text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
-    });
-  }
-
-  function mouseout() {
-    //d3.selectAll("text").classed("active", false);
-  }
-
   function currentLayout() {
     return layouts[$('#layout :selected').val()];
   }
@@ -214,9 +203,9 @@ d3.json("/entries.json?group_by=type", function(root) {
         type = d.selection_type + (typeof d.diff_index === 'number' ? '-' + d.diff_index : ''),
         mem;
       if (type === 'yhy' || type === 'singleletter-1')
-        mem = confusables.t
+        mem = confusables.t;
       else if (type === 'singleletter-2' || type === 'singleletter-3')
-        mem = confusables.b
+        mem = confusables.b;
       else if (type === 'singleletter-0')
         mem = (text < selected) ? confusables.l : confusables.r;
       else if (type === 'identical')
@@ -252,20 +241,6 @@ d3.json("/entries.json?group_by=type", function(root) {
         
         return 'translate(' + evaded.x + ',' + evaded.y + ')';
       });
-/*
-    svg.selectAll('#bounds')
-      .data([bounds])
-      .enter()
-      .append('rect')
-      .attr('id', 'bounds');
-
-    svg.selectAll('#bounds')
-      .attr('x', bounds.x)
-      .attr('y', bounds.y)
-      .attr('width', bounds.width)
-      .attr('height', bounds.height);
-*/
-    
   }
 
   function layoutSelectionRow(center, direction, confusables) {
@@ -360,6 +335,17 @@ d3.json("/entries.json?group_by=type", function(root) {
     changeLayout(this.value);
   });
 
+  function mouseover(p) {
+    var d = d3.select(this).datum();
+    d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
+      $('#inspector').text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
+    });
+  }
+
+  function mouseout() {
+    //d3.selectAll("text").classed("active", false);
+  }
+
   var app = $.sammy('#yui-main', function() {
     this.get('#/sort/:layout', function() {
       $('#layout')
@@ -386,6 +372,28 @@ d3.json("/entries.json?group_by=type", function(root) {
     });
     changeLayout();
   });
+
+  function selectLeft() {
+    console.log('h');
+  }
+
+  function selectRight() {
+    console.log('l');
+  }
+
+  function selectUp() {
+    console.log('k');
+  }
+
+  function selectDown() {
+    console.log('j');
+  }
+
+  Mousetrap
+    .bind('h', selectLeft)
+    .bind('j', selectDown)
+    .bind('k', selectUp)
+    .bind('l', selectRight);
 
   $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });
