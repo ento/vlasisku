@@ -1,3 +1,7 @@
+svg {
+  overflow: hidden;
+}
+
 .background {
   fill: #fff;
 }
@@ -5,12 +9,13 @@
 .entry text {
   fill: #000;
   stroke: #444;
+  font-size: 16px;
+  font-family: monospace;
 }
 
-.entry.selected text {
+.entry.focus text {
   fill: #f00;
   stroke: #f00;
-  font-size: 20px;
   box-shadow: 2px 2px 2px #333;
 }
 
@@ -19,4 +24,22 @@
 /*  stroke: #00f;*/
   stroke: transparent;
   stroke-width: 2px;
+}
+
+#cursor {
+  fill: transparent;
+  stroke: #fc0;
+  stroke-dasharray: 3, 3;
+  stroke-width: 2px;
+}
+
+#backdrop rect {
+  fill: #fff;
+  fill-opacity: 0.5;
+  stroke: none;
+  display: none;
+}
+
+#backdrop.in rect {
+  display: block;
 }

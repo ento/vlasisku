@@ -7,9 +7,86 @@ function zeroFill( number, width ) {
   return number + ""; // always return a string
 }
 
-var margin = {top: 80, right: 0, bottom: 10, left: 80},
+function growRectangle(rect, point) {
+  if (point.x < rect.x) {
+    rect.width += rect.x - point.x;
+    rect.x = point.x;
+  } else if ((rect.x + rect.width) < point.x) {
+    rect.width += point.x - (rect.x + rect.width);
+  }
+  if (point.y < rect.y) {
+    rect.height += rect.y - point.y;
+    rect.y = point.y;
+  } else if ((rect.y + rect.height) < point.y) {
+    rect.height += point.y - (rect.y + rect.height);
+  }
+}
+
+function contains(rect, point) {
+  if (point.x < rect.x || (rect.x + rect.width) < point.x)
+    return false;
+  if (point.y < rect.y || (rect.y + rect.height) < point.y)
+    return false;
+  return true;
+}
+
+function evade(danger, victim) {
+  var dangerCenter = center(danger),
+    victimCenter = center(victim),
+    dx, dy;
+  if (victimCenter.x < dangerCenter.x) {
+    dx = danger.x - (victim.x + victim.width);
+  } else {
+    dx = danger.x + danger.width - victim.x;
+  }
+  if (victimCenter.y < dangerCenter.y) {
+    dy = danger.y - (victim.y + victim.height);
+  } else {
+    dy = danger.y + danger.height - victim.y;
+  }
+  var evadeToX = Math.abs(dx) < Math.abs(dy);
+    console.log(dangerCenter, victimCenter, danger, victim, dx, dy);
+  return {x: (evadeToX ? dx : 0), y: (evadeToX ? 0 : dy)};
+}
+
+function center(rect) {
+  return {x: rect.x + rect.width * 0.5, y: rect.y + rect.height * 0.5};
+}
+
+function move(rect, diff) {
+  return {x: rect.x + diff.x, y: rect.y + diff.y, width: rect.width, height: rect.height};
+}
+
+function translate(d, x, y) {
+  if (typeof(x) !== 'undefined')
+    d.x = x;
+  if (typeof(y) !== 'undefined')
+    d.y = y;
+  return 'translate(' + d.x + ',' + d.y + ')';
+}
+
+function extend(superType, submethods) {
+  function factory() {};
+  factory.prototype = superType.prototype;
+  var subproto = new factory();
+  subproto.superType = superType;
+  for (var key in submethods) {
+    subproto[key] = submethods[key];
+  }
+  return subproto;
+}
+
+function numericAscending(a, b) {
+  return d3.ascending(parseFloat(a), parseFloat(b));
+}
+
+function numericDescending(a, b) {
+  return -numericAscending(a, b);
+}
+
+var margin = {top: 0, right: 0, bottom: 0, left: 0},
     colSize = 10,
-    entryWidth = 72,
+    entryWidth = 48,
     entryHeight = 20,
     entryPadding = 0.2,
     width = colSize * entryWidth;
@@ -20,37 +97,40 @@ var x = d3.scale.linear().domain([0, colSize]).range([0, colSize * entryWidth]),
 
 var svg = d3.select("#cheatsheet").append("svg")
     .attr("id", "canvas")
-    .style("margin-left", -margin.left + "px")
   .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("id", "content");
+
+svg.append("g")
+  .attr('id', 'cursor')
+  .append('rect')
+  .attr('width', entryWidth)
+  .attr('height', entryHeight);
+
+svg.append("g")
+  .attr('id', 'backdrop')
+  .append('rect')
+  .attr('width', 1000)
+  .attr('height', 1000);
 
 d3.json("/entries.json?group_by=type", function(root) {
-
   var index = [],
       nodes = root.cmavo,
-      n = nodes.length;
-
-  function extend(superType, submethods) {
-    function factory() {};
-    factory.prototype = superType.prototype;
-    var subproto = new factory();
-    subproto.superType = superType;
-    for (var key in submethods) {
-      subproto[key] = submethods[key];
-    }
-    return subproto;
-  }
+      n = nodes.length,
+      cursor, rt;
 
   function Layout(nodes) {
     this.coords = calculateCoords(nodes, this);
   }
+
   Layout.prototype = {
     letters: 'abcdefgijklmnoprstuvxyz',
+
     categorize: function() {
       throw 'Not implemented';
     },
+
     x: function(d) {
-      return x(this.coords.xMap[d.word]);
+      return x(this.coords.xMap[d.word] % colSize);
     },
 
     y: function(d) {
@@ -62,6 +142,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   function ABCLayout() {
     this.superType.apply(this, arguments);
   }
+
   ABCLayout.prototype = extend(Layout, {
     categorize: function(d) {
       return {
@@ -74,6 +155,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   function LengthLayout() {
     this.superType.apply(this, arguments);
   }
+
   LengthLayout.prototype = extend(Layout, {
     categorize: function(d) {
       return {
@@ -86,6 +168,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   function ChapterLayout() {
     this.superType.apply(this, arguments);
   }
+
   ChapterLayout.prototype = extend(Layout, {
     categorize: function(d) {
       var chapter = findChapter(d);
@@ -135,9 +218,22 @@ d3.json("/entries.json?group_by=type", function(root) {
   function updateScale(layout) {
     var height = layout.coords.yMax * entryHeight;
     y.domain([0, layout.coords.yMax]).range([0, height]);
+  }
+
+  function adjustCanvasSize() {
+    var bounds = rt.get_tree(),
+      canvasWidth = bounds.w + margin.left + margin.right,
+      canvasHeight = bounds.h + margin.top + margin.bottom;
+
     d3.select('#canvas')
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom);
+      .attr("margin-left", -margin.left + "px")
+      .attr("width", canvasWidth)
+      .attr("height", canvasHeight);
+    d3.select('#content')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    d3.select('#backdrop rect')
+      .attr("width", canvasWidth)
+      .attr("height", canvasHeight);
   }
 
   var entries = svg.selectAll(".entry")
@@ -185,30 +281,41 @@ d3.json("/entries.json?group_by=type", function(root) {
     t.selectAll(".entry")
       .delay(function(d, i) { return layout.coords.xMap[d.word] * 4; })
       .attr("transform", function(d) {
-         return "translate(" + layout.x(d) + "," + layout.y(d) + ")";
+         return translate(d, layout.x(d), layout.y(d));
       });
 
-    changeSelection();
+    $('#backdrop').appendTo('#content');
+    layoutFocus();
+    t.attr('data-last-update', (new Date()).getTime()).each('end', function() {
+      rebuildIndex();
+      updateCursor();
+      adjustCanvasSize();
+    });
   }
 
-  function changeSelection() {
+  function layoutFocus() {
     var layout = currentLayout(),
       confusables = {t: [], r: [], b: [], l: [], identical: []},
-      selected = $('#selected text').text();
+      focus = $('#focus text').text();
 
-    if (!selected)
+    if (!focus) {
+      d3.select('#backdrop').attr('class', '');
       return;
+    } else {
+      d3.select('#backdrop').attr('class', 'in');
+    }
 
-    d3.selectAll(".entry.selected").each(function(d, i) {
+    d3.selectAll(".entry.focus").each(function(d, i) {
+      $(this).insertAfter('#backdrop');
       var text = $(this).find('text').text(),
-        type = d.selection_type + (typeof d.diff_index === 'number' ? '-' + d.diff_index : ''),
+        type = d.focus_type + (typeof d.diff_index === 'number' ? '-' + d.diff_index : ''),
         mem;
       if (type === 'yhy' || type === 'singleletter-1')
         mem = confusables.t;
       else if (type === 'singleletter-2' || type === 'singleletter-3')
         mem = confusables.b;
       else if (type === 'singleletter-0')
-        mem = (text < selected) ? confusables.l : confusables.r;
+        mem = (text < focus) ? confusables.l : confusables.r;
       else if (type === 'identical')
         mem = confusables.identical;
       mem.push({el: this, text: text, d: d, i: i});
@@ -224,11 +331,11 @@ d3.json("/entries.json?group_by=type", function(root) {
       if (type === 'identical')
         continue;
       var mem = confusables[type],
-        positions = layoutSelectionRow(center, type, mem);
+        positions = layoutFocusRow(center, type, mem);
       $.each(positions, function(i, pos) { growRectangle(bounds, pos); });
     }
 
-    d3.selectAll('.entry:not(.selected)')
+    d3.selectAll('.entry:not(.focus)')
       .filter(function(d) {
         return contains(bounds, {x: layout.x(d), y: layout.y(d)});
       })
@@ -240,75 +347,25 @@ d3.json("/entries.json?group_by=type", function(root) {
           run = evade(bounds, each),
           evaded = move(each, {x: run.x * 1.2, y: run.y * 1.2});
         
-        return 'translate(' + evaded.x + ',' + evaded.y + ')';
+        return translate(d, evaded.x, evaded.y);
       });
   }
 
-  function layoutSelectionRow(center, direction, confusables) {
+  function layoutFocusRow(center, direction, confusables) {
     confusables.sort(function(a, b) { return a.text.localeCompare(b.text); });
     var centerIndex = confusables.indexOf(center.text),
       reverse = direction === 'l' || direction === 't',
       positions = [];
     for(i in confusables) {
       var each = reverse ? confusables[confusables.length - i - 1] : confusables[i],
-        pos = layoutSelection(center, direction, each, parseInt(i));
+        pos = layoutFocusEntry(center, direction, each, parseInt(i));
       if (pos)
         positions.push(pos, {x: pos.x + entryWidth, y: pos.y + entryHeight});
     }
     return positions;
   }
 
-  function growRectangle(rect, point) {
-    if (point.x < rect.x) {
-      rect.width += rect.x - point.x;
-      rect.x = point.x;
-    } else if ((rect.x + rect.width) < point.x) {
-      rect.width += point.x - (rect.x + rect.width);
-    }
-    if (point.y < rect.y) {
-      rect.height += rect.y - point.y;
-      rect.y = point.y;
-    } else if ((rect.y + rect.height) < point.y) {
-      rect.height += point.y - (rect.y + rect.height);
-    }
-  }
-
-  function contains(rect, point) {
-    if (point.x < rect.x || (rect.x + rect.width) < point.x)
-      return false;
-    if (point.y < rect.y || (rect.y + rect.height) < point.y)
-      return false;
-    return true;
-  }
-
-  function evade(danger, victim) {
-    var dangerCenter = center(danger),
-      victimCenter = center(victim),
-      dx, dy;
-    if (victimCenter.x < dangerCenter.x) {
-      dx = danger.x - (victim.x + victim.width);
-    } else {
-      dx = danger.x + danger.width - victim.x;
-    }
-    if (victimCenter.y < dangerCenter.y) {
-      dy = danger.y - (victim.y + victim.height);
-    } else {
-      dy = danger.y + danger.height - victim.y;
-    }
-    var evadeToX = Math.abs(dx) < Math.abs(dy);
-//    console.log(dangerCenter, victimCenter, danger, victim, dx, dy);
-    return {x: (evadeToX ? dx : 0), y: (evadeToX ? 0 : dy)};
-  }
-
-  function center(rect) {
-    return {x: rect.x + rect.width * 0.5, y: rect.y + rect.height * 0.5};
-  }
-
-  function move(rect, diff) {
-    return {x: rect.x + diff.x, y: rect.y + diff.y, width: rect.width, height: rect.height};
-  }
-
-  function layoutSelection(center, type, each, distance) {
+  function layoutFocusEntry(center, type, each, distance) {
     var directionMap = {
         't': {x: 0, y: -1},
         'l': {x: -1, y: 0},
@@ -318,7 +375,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       direction = directionMap[type];
 
     if (!direction)
-      return;
+      return null;
     
     var dx = center.x + entryWidth * direction.x * (distance + 1),
       dy = center.y + entryHeight * direction.y * (distance + 1);
@@ -327,24 +384,58 @@ d3.json("/entries.json?group_by=type", function(root) {
       .transition()
       .duration(1000)
       .delay(each.i * 4)
-      .attr('transform', "translate(" + dx + "," + dy + ")");
+      .attr('transform', function(d) {
+        return translate(d, dx, dy);
+      });
 
     return {x: dx, y: dy};
+  }
+
+  function rebuildIndex() {
+    console.log('rebuildIndex');
+    rt = new RTree();
+    nodes.forEach(function(n) {
+      rt.insert({x: n.x, y: n.y, w: entryWidth, h: entryHeight}, n);
+    });
+  }
+
+  function updateCursor() {
+    var d;
+    if (!cursor) {
+      d = rt.search({x: 0, y: 0, h: 1, w: 1});
+      d = (d && d.length) ? d[0] : nodes[0];
+    } else {
+      d = cursor.d;
+    }
+    moveCursor(d);
   }
 
   $("#layout").on("change", function() {
     changeLayout(this.value);
   });
 
-  function mouseover(p) {
-    var d = d3.select(this).datum();
+  function moveCursor(d) {
+    d3.select('#cursor')
+      .attr('transform', translate(d));
     d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
-      $('#inspector').text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
+      $('#inspector')
+        .text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
     });
+    if (!cursor || cursor.d.word !== d.word)
+      cursor = {d: d};
+  }
+
+  function mouseover(p) {
+    moveCursor(d3.select(this).datum());
   }
 
   function mouseout() {
     //d3.selectAll("text").classed("active", false);
+  }
+
+  function unFocus() {
+    d3.select('#focus').attr('id', null);
+    d3.selectAll('.entry.focus').attr('class', 'entry');
   }
 
   var app = $.sammy('#yui-main', function() {
@@ -356,38 +447,113 @@ d3.json("/entries.json?group_by=type", function(root) {
   });
 
   $('#yui-main').on('click', '.entry text, .entry rect', function() {
-    d3.select('#selected').attr('id', null);
-    d3.selectAll('.entry.selected').attr('class', 'entry');
+    unFocus();
     var $entry = $(this).parent(),
-      selected = $entry.attr('id', 'selected').find('text').text();
+      focus = $entry.attr('id', 'focus').find('text').text();
     d3.selectAll('.entry').each(function() {
       var each = $(this).find('text').text(),
-        conf = isConfusable(selected, each);
+        conf = isConfusable(focus, each);
       if (conf) {
         var d = d3.select(this)
-          .attr('class', 'entry selected ' + conf.type)
+          .attr('class', 'entry focus ' + conf.type)
           .datum();
-        d.selection_type = conf.type;
+        d.focus_type = conf.type;
         d.diff_index = conf.type === 'singleletter' ? parseInt(conf.index) : null;
       }
     });
     changeLayout();
   });
 
+  $('#backdrop').on('click', function() {
+    unFocus();
+    changeLayout();
+  });
+
+  function leftRow(d) {
+    var bounds = rt.get_tree();
+    return rt.search({x: bounds.x, y: d.y, w: d.x - bounds.x - 1, h: entryHeight});
+  }
+
+  function rightMost(nodes) {
+    return d3.first(nodes, function(a, b) { return a.y > b.y; });
+  }
+
+  var areaCodes = {
+    // left row
+    lr: function(p, bounds) { return {x: bounds.x, y: p.y + 1, w: p.x - bounds.x - 1, h: entryHeight - 2}; },
+
+    // left
+    l: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: p.x - 1 - bounds.x, h: bounds.h}; },
+
+    // top column
+    tc: function(p, bounds) { return {x: p.x + 1, y: bounds.y, w: entryWidth - 2, h: p.y - 1 - bounds.y}; },
+
+    // top
+    t: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: bounds.w, h: p.y - 1 - bounds.y}; },
+
+    // right row
+    rr: function(p, bounds) { return {x: p.x + entryWidth + 1, y: p.y + 1, w: bounds.x + bounds.w - p.x - entryWidth - 1, h: entryHeight - 2}; },
+
+    // right
+    r: function(p, bounds) { return {x: p.x + entryWidth + 1, y: bounds.y, w: bounds.x + bounds.w - (p.x + entryWidth + 1), h: bounds.h}; },
+
+    // bottom column
+    bc: function(p, bounds) { return {x: p.x + 1, y: p.y + entryHeight + 1, w: entryWidth - 2, h: bounds.y + bounds.h - (p.y + entryHeight + 1)}; },
+
+    // bottom
+    b: function(p, bounds) { return {x: bounds.x, y: p.y + entryHeight + 1, w: bounds.w, h: bounds.h - (p.y + entryHeight + 1 - bounds.y)}; }
+  };
+
+  var drilldownCodes = {
+    l: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericAscending); },
+    t: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericAscending); },
+    r: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericDescending); },
+    b: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericDescending); }
+  };
+
+  function searchEntry(referencePoint, specs) {
+    for(var i in specs) {
+      var found = searchEntryEach(referencePoint, specs[i][0], specs[i][1]);
+      if (found)
+        return found;
+    }
+    return null;
+  }
+
+  function searchEntryEach(referencePoint, area, drilldowns) {
+    var bounds = rt.get_tree(),
+      nodes = rt.search(areaCodes[area](referencePoint, bounds));
+    console.log(area, nodes.map(function(each) { return each.word; } ));
+    $.each(drilldowns, function(i, each) {
+      if(nodes.length)
+        nodes = drilldownCodes[each](d3.nest()).entries(nodes)[0].values;
+    });
+    console.log(nodes);
+    return nodes[0];
+  }
+
   function selectLeft() {
-    console.log('h');
+    var selected = searchEntry(cursor.d, [['lr', 'r'], ['t', 'br']]);
+    if (selected)
+      moveCursor(selected);
   }
 
   function selectRight() {
-    console.log('l');
+    var selected = searchEntry(cursor.d, [['rr', 'l'], ['b', 'tl']]);
+    if (selected)
+      moveCursor(selected);
   }
 
   function selectUp() {
-    console.log('k');
+    var selected = searchEntry(cursor.d, [['tc', 'b']]);
+    if (selected)
+      moveCursor(selected);
   }
 
   function selectDown() {
-    console.log('j');
+    var selected = searchEntry(cursor.d, [['bc', 't']]);
+    if (selected)
+      moveCursor(selected);
   }
 
   Mousetrap
