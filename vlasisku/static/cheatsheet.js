@@ -74,10 +74,10 @@ function translate(d, x, y) {
 function debounce(fn, timeout) {
   var timeoutID = -1;
   return function() {
-     if (timeoutID > -1) {
-        window.clearTimeout(timeoutID);
-     }
-   timeoutID = window.setTimeout(fn, timeout);
+    if (timeoutID > -1) {
+      window.clearTimeout(timeoutID);
+    }
+    timeoutID = window.setTimeout(fn, timeout);
   }
 };
 
@@ -242,11 +242,10 @@ d3.json("/entries.json?group_by=type", function(root) {
       canvasHeight = bounds.h;
 
     d3.select('#canvas')
-//      .attr("margin-left", -pan.x + "px")
-      .attr("width", canvasWidth)
-      .attr("height", canvasHeight);
+      .attr("width", '100%')
+      .attr("height", '100%');
     d3.select('#content')
-    .attr("transform", "translate(" + pan.x + "," + pan.y + ")");
+      .attr("transform", "translate(" + pan.x + "," + pan.y + ")");
     d3.select('#backdrop rect')
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);

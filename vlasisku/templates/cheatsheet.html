@@ -1,31 +1,40 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:xi="http://www.w3.org/2001/XInclude"
       xmlns:py="http://genshi.edgewall.org/">
-  <xi:include href="layout.html"/>
   <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <title>jbo cheatsheet</title>
+    <link rel="stylesheet" href="${url_for('.static', filename='bootstrap/css/bootstrap.min.css')}" type="text/css"/>
+    <link rel="stylesheet" href="${url_for('.static', filename='custom.css')}" type="text/css" media="screen, projection, print"/>
+    <script type="text/javascript" src="${url_for('.static', filename='jquery-1.7.1.js')}"/>
+    <script type="text/javascript" src="https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js"/>
 <!--    <script type="text/javascript" src="http://d3js.org/d3.v2.min.js?2.8.1"/> -->
+    <script type="text/javascript" src="${url_for('.static', filename='bootstrap/js/bootstrap.min.js')}"/>
     <script type="text/javascript" src="${url_for('.static', filename='sammy-0.7.1.min.js')}"/>
     <script type="text/javascript" src="${url_for('.static', filename='d3.v2.min.js')}"/>
     <script type="text/javascript" src="${url_for('.static', filename='rtree.js')}"/>
-    
+
     <link rel="stylesheet" href="${url_for('.static', filename='cheatsheet.css')}" type="text/css" media="screen, projection, print"/>
   </head>
   <body>
-    <h2>Cheatsheet: cmavo</h2>
-    <select id="layout">
-      <option value="alphabet">ABC</option>
-      <option value="length">Length</option>
-      <option value="chapter" selected="1">Chapter</option>
-    </select>
-    <div id="search-box" style="display: none;">
-      <input id="q" autocomplete="off"/>
-      <a class="btn" id="prev" href="">^</a>
-      <a class="btn" id="next" href="">v</a>
-      <ul id="candidates"></ul>
+    <div class="row">
+      <div class="span2">
+        <h2>Cheatsheet: cmavo</h2>
+        <select id="layout">
+          <option value="alphabet">ABC</option>
+          <option value="length">Length</option>
+          <option value="chapter" selected="1">Chapter</option>
+        </select>
+        <div id="search-box" style="display: none;">
+          <input id="q" autocomplete="off"/>
+          <a class="btn" id="prev" href="">^</a>
+          <a class="btn" id="next" href="">v</a>
+          <ul id="candidates"></ul>
+        </div>
+      </div>
+      <div id="cheatsheet" class="span8"></div>
+      <div id="inspector" class="span2"></div>
     </div>
-    <div id="inspector"></div>
-    <div id="cheatsheet"></div>
     <script type="text/javascript" src="${url_for('.static', filename='cheatsheet.js')}"/>
   </body>
 </html>
