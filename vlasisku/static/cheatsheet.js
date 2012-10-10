@@ -426,10 +426,6 @@ d3.json("/entries.json?group_by=type", function(root) {
     moveCursor(d);
   }
 
-  $("#layout").on("change", function() {
-    changeLayout(this.value);
-  });
-
   function moveCursor(d) {
     d3.select('#cursor')
       .attr('transform', translate(d));
@@ -442,7 +438,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       cursor = {d: d};
   }
 
-  function mouseover(p) {
+  function mouseover() {
     moveCursor(d3.select(this).datum());
   }
 
@@ -486,14 +482,9 @@ d3.json("/entries.json?group_by=type", function(root) {
     changeLayout();
   });
 
-  function leftRow(d) {
-    var bounds = rt.get_tree();
-    return rt.search({x: bounds.x, y: d.y, w: d.x - bounds.x - 1, h: entryHeight});
-  }
-
-  function rightMost(nodes) {
-    return d3.first(nodes, function(a, b) { return a.y > b.y; });
-  }
+  $("#layout").on("change", function() {
+    changeLayout(this.value);
+  });
 
   var areaCodes = {
     // left row
@@ -649,6 +640,13 @@ d3.json("/entries.json?group_by=type", function(root) {
     .bind('f', panUp)
     .bind('g', panRight)
     .bind('/', showSearchBox);
+
+  $('#layout option').each(function(i, each){
+    Mousetrap.bind(i + 1 + '', function() {
+      $(each).prop('selected', true);
+      $('#layout').trigger('change');
+    })
+  })
 
   $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });
