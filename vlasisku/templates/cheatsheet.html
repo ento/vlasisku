@@ -18,6 +18,12 @@
       <option value="length">Length</option>
       <option value="chapter" selected="1">Chapter</option>
     </select>
+    <div id="search-box" style="display: none;">
+      <input id="q" autocomplete="off"/>
+      <a class="btn" id="prev" href="">^</a>
+      <a class="btn" id="next" href="">v</a>
+      <ul id="candidates"></ul>
+    </div>
     <div id="inspector"></div>
     <div id="cheatsheet"></div>
     <script type="text/javascript" src="${url_for('.static', filename='cheatsheet.js')}"/>

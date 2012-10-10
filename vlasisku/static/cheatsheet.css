@@ -26,6 +26,11 @@ svg {
   stroke-width: 2px;
 }
 
+.highlight {
+  fill: #f00;
+  stroke: #f00;
+}
+
 #cursor {
   fill: transparent;
   stroke: #fc0;

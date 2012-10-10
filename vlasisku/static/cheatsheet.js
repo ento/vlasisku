@@ -1,3 +1,9 @@
+if (typeof String.prototype.startsWith != 'function') {
+  String.prototype.startsWith = function (str){
+    return this.slice(0, str.length) == str;
+  };
+}
+
 function zeroFill( number, width ) {
   width -= number.toString().length;
   if ( width > 0 )
@@ -65,6 +71,16 @@ function translate(d, x, y) {
   return 'translate(' + d.x + ',' + d.y + ')';
 }
 
+function debounce(fn, timeout) {
+  var timeoutID = -1;
+  return function() {
+     if (timeoutID > -1) {
+        window.clearTimeout(timeoutID);
+     }
+   timeoutID = window.setTimeout(fn, timeout);
+  }
+};
+
 function extend(superType, submethods) {
   function factory() {};
   factory.prototype = superType.prototype;
@@ -84,7 +100,7 @@ function numericDescending(a, b) {
   return -numericAscending(a, b);
 }
 
-var margin = {top: 0, right: 0, bottom: 0, left: 0},
+var pan = {x: 0, y: 0},
     colSize = 10,
     entryWidth = 48,
     entryHeight = 20,
@@ -222,15 +238,15 @@ d3.json("/entries.json?group_by=type", function(root) {
 
   function adjustCanvasSize() {
     var bounds = rt.get_tree(),
-      canvasWidth = bounds.w + margin.left + margin.right,
-      canvasHeight = bounds.h + margin.top + margin.bottom;
+      canvasWidth = bounds.w,
+      canvasHeight = bounds.h;
 
     d3.select('#canvas')
-      .attr("margin-left", -margin.left + "px")
+//      .attr("margin-left", -pan.x + "px")
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);
     d3.select('#content')
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + pan.x + "," + pan.y + ")");
     d3.select('#backdrop rect')
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);
@@ -417,6 +433,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   function moveCursor(d) {
     d3.select('#cursor')
       .attr('transform', translate(d));
+    panTo(d);
     d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
       $('#inspector')
         .text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
@@ -511,16 +528,16 @@ d3.json("/entries.json?group_by=type", function(root) {
     b: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericDescending); }
   };
 
-  function searchEntry(referencePoint, specs) {
+  function drilldownEntry(referencePoint, specs) {
     for(var i in specs) {
-      var found = searchEntryEach(referencePoint, specs[i][0], specs[i][1]);
+      var found = drilldownEntryEach(referencePoint, specs[i][0], specs[i][1]);
       if (found)
         return found;
     }
     return null;
   }
 
-  function searchEntryEach(referencePoint, area, drilldowns) {
+  function drilldownEntryEach(referencePoint, area, drilldowns) {
     var bounds = rt.get_tree(),
       nodes = rt.search(areaCodes[area](referencePoint, bounds));
     console.log(area, nodes.map(function(each) { return each.word; } ));
@@ -533,34 +550,105 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function selectLeft() {
-    var selected = searchEntry(cursor.d, [['lr', 'r'], ['t', 'br']]);
+    var selected = drilldownEntry(cursor.d, [['lr', 'r'], ['t', 'br']]);
     if (selected)
       moveCursor(selected);
   }
 
   function selectRight() {
-    var selected = searchEntry(cursor.d, [['rr', 'l'], ['b', 'tl']]);
+    var selected = drilldownEntry(cursor.d, [['rr', 'l'], ['b', 'tl']]);
     if (selected)
       moveCursor(selected);
   }
 
   function selectUp() {
-    var selected = searchEntry(cursor.d, [['tc', 'b']]);
+    var selected = drilldownEntry(cursor.d, [['tc', 'b']]);
     if (selected)
       moveCursor(selected);
   }
 
   function selectDown() {
-    var selected = searchEntry(cursor.d, [['bc', 't']]);
+    var selected = drilldownEntry(cursor.d, [['bc', 't']]);
     if (selected)
       moveCursor(selected);
   }
+
+  function panLeft() {
+    panBy(-entryWidth * 0.5);
+  }
+
+  function panUp() {
+    panBy(0, -entryHeight);
+  }
+
+  function panDown() {
+    panBy(0, entryHeight);
+  }
+
+  function panRight() {
+    panBy(entryWidth * 0.5);
+  }
+
+  function panBy(x, y) {
+    pan.x += x || 0;
+    adjustCanvasSize();
+  }
+
+  function panTo(p) {
+    pan.x = -p.x;
+    pan.y = -p.y;
+    adjustCanvasSize();
+  }
+
+  function showSearchBox(e) {
+    $('#search-box').show().find('input').focus();
+    return false;
+  }
+
+  function search() {
+    var q = $('#q').val(),
+      candidates = [];
+    d3.selectAll('.entry').each(function(d) {
+      var textElem = d3.select(this).select('text');
+      if (q.length && d.word.startsWith(q)) {
+        textElem.text('');
+        textElem.append('tspan').attr('class', 'highlight').text(q);
+        textElem.append('tspan').text(d.word.slice(q.length));
+        candidates.push(d);
+      } else {
+        textElem.text(d.word);
+      }
+    });
+    updateSearchCandidates(candidates);
+  }
+
+  function updateSearchCandidates(candidates) {
+    var li = d3.select('#search-box #candidates').selectAll('li').data(candidates);
+    li
+      .enter()
+      .append('li');
+    li
+      .text(function(d){ return d.word; });
+    li
+      .exit().remove();
+    li
+      .on('click', function(d) {
+        moveCursor(d);
+      });
+  }
+
+  $('#search-box input').on('keyup', debounce(search, 100));
 
   Mousetrap
     .bind('h', selectLeft)
     .bind('j', selectDown)
     .bind('k', selectUp)
-    .bind('l', selectRight);
+    .bind('l', selectRight)
+    .bind('s', panLeft)
+    .bind('d', panDown)
+    .bind('f', panUp)
+    .bind('g', panRight)
+    .bind('/', showSearchBox);
 
   $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });
