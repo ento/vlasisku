@@ -26,7 +26,7 @@ def entries():
 
     word = request.args.get('word')
     if word:
-        return jsonify(cll=database.root.cll, word=json_entries[word])
+        return jsonify(word=json_entries[word])
 
     return jsonify(cll=database.root.cll, **json_entries)
 
