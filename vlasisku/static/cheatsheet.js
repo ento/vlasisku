@@ -28,10 +28,14 @@ function growRectangle(rect, point) {
   }
 }
 
-function contains(rect, point) {
-  if (point.x < rect.x || (rect.x + rect.width) < point.x)
+function contains(aRect, bRect) {
+  var bx_lt_ax = bRect.x < aRect.x,
+    ar_lt_br = (aRect.x + aRect.width) < (bRect.x + (bRect.width || 0));
+  if (bx_lt_ax || ar_lt_br)
     return false;
-  if (point.y < rect.y || (rect.y + rect.height) < point.y)
+  var by_lt_ay = bRect.y < aRect.y,
+    ab_lt_bb = (aRect.y + aRect.height) < (bRect.y + (bRect.height || 0));
+  if (by_lt_ay || ab_lt_bb)
     return false;
   return true;
 }
@@ -428,7 +432,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   function moveCursor(d) {
     d3.select('#cursor')
       .attr('transform', translate(d));
-    panTo(d);
+
     d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
       $('#inspector')
         .text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
@@ -590,6 +594,41 @@ d3.json("/entries.json?group_by=type", function(root) {
     adjustCanvasSize();
   }
 
+  function panToShow(d) {
+    var viewport = getViewport();
+    if (contains(viewport, {x: d.x, y: d.y, width: entryWidth, height: entryHeight}))
+      return;
+
+    var xMargin = viewport.width * 0.1,
+      yMargin = viewport.height * 0.4;
+
+    viewport.right = viewport.x + viewport.width;
+    viewport.bottom = viewport.y + viewport.height;
+    dRight = d.x + entryWidth;
+    dBottom = d.y + entryHeight;
+
+    // d | viewport |
+    if (d.x < viewport.x)
+      pan.x = -d.x + xMargin;
+
+    //   | viewport | d
+    if (viewport.right < dRight)
+      pan.x = -(dRight - viewport.width) - xMargin;
+
+    if (d.y < viewport.y)
+      pan.y = -d.y + yMargin;
+
+    if (viewport.bottom < dBottom)
+      pan.y = -(dBottom - viewport.height) - yMargin;
+
+    adjustCanvasSize();
+  }
+
+  function getViewport() {
+    var $svg = $(svg.node);
+    return {x: -pan.x, y: -pan.y, width: $svg.width(), height: $svg.height()};
+  }
+
   function showSearchBox(e) {
     $('#search-box').show().find('input').focus();
     return false;
@@ -613,7 +652,8 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function updateSearchCandidates(candidates) {
-    var li = d3.select('#search-box #candidates').selectAll('li').data(candidates);
+    var li = d3.select('#search-box #candidates').selectAll('li').data(candidates),
+      cur = d3.select('#search-box #candidates .selected');
     li
       .enter()
       .append('li');
@@ -623,9 +663,41 @@ d3.json("/entries.json?group_by=type", function(root) {
       .exit().remove();
     li
       .on('click', function(d) {
-        moveCursor(d);
+        jumpToCandidate($(this));
       });
+    $('#search-box #candidates .selected').removeClass('selected');
+    if (!cur.empty()) {
+      var prev = cur.datum().word;
+      li.each(function(d){
+        if (d.word === prev)
+          $(this).addClass('.selected');
+      });
+    }
+    if (!$('#search-box #candidates .selected').length)
+      $('#search-next').trigger('click');
   }
+
+  function jumpToCandidate($next, $cur) {
+    if (!$cur || !$cur.length)
+      $cur = $('#search-box #candidates .selected');
+    $cur.removeClass('selected');
+    $next.addClass('selected');
+    d3.select($next.get()[0]).each(function(d){
+      moveCursor(d);
+      panToShow(d);
+    });
+  }
+
+  $('#search-next, #search-prev').on('click', function(e) {
+    e.preventDefault();
+    var $cur = $('#search-box #candidates .selected'),
+      selectNext = $(e.target).is('#search-next'),
+      $next = selectNext ? $cur.next('li') : $cur.prev('li');
+    if(!$next.length)
+      $next = $('#search-box #candidates li')[selectNext ? 'first' : 'last']();
+
+    jumpToCandidate($next, $cur);
+  });
 
   $('#search-box input').on('keyup', debounce(search, 100));
 

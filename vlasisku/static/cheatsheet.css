@@ -38,6 +38,10 @@ svg {
   stroke-width: 2px;
 }
 
+#candidates .selected {
+  background-color: #eee8d5;
+}
+
 #backdrop rect {
   fill: #fff;
   fill-opacity: 0.5;
