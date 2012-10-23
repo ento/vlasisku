@@ -243,16 +243,16 @@ d3.json("/entries.json?group_by=type", function(root) {
   function adjustCanvasSize() {
     var bounds = rt.get_tree(),
       canvasWidth = bounds.w,
-      canvasHeight = bounds.h;
+      canvasHeight = bounds.h + 50;
 
     d3.select('#canvas')
-      .attr("width", '100%')
-      .attr("height", '100%');
-    d3.select('#content')
-      .attr("transform", "translate(" + pan.x + "," + pan.y + ")");
+      .attr("width", canvasWidth)
+      .attr("height", canvasHeight);
     d3.select('#backdrop rect')
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);
+
+    $('#cheatsheet').scrollLeft(-pan.x).scrollTop(-pan.y);
   }
 
   var entries = svg.selectAll(".entry")
@@ -289,7 +289,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function currentLayout() {
-    return layouts[$('#layout :selected').val()];
+    return layouts[$('#layout .active').data('value')];
   }
 
   function changeLayout(value) {
@@ -344,7 +344,6 @@ d3.json("/entries.json?group_by=type", function(root) {
     center.x = layout.x(center.d);
     center.y = layout.y(center.d);
     var bounds = {x: center.x, y: center.y, width: entryWidth, height: entryHeight};
-    console.log(confusables.identical, center.text);
 
     for(type in confusables) {
       if (type === 'identical')
@@ -411,7 +410,6 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function rebuildIndex() {
-    console.log('rebuildIndex');
     rt = new RTree();
     nodes.forEach(function(n) {
       rt.insert({x: n.x, y: n.y, w: entryWidth, h: entryHeight}, n);
@@ -454,15 +452,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     d3.selectAll('.entry.focus').attr('class', 'entry');
   }
 
-  var app = $.sammy('#yui-main', function() {
-    this.get('#/sort/:layout', function() {
-      $('#layout')
-        .find('[value="' + this.params.layout + '"]').prop('selected', true).end()
-        .trigger('change');
-    });
-  });
-
-  $('#yui-main').on('click', '.entry text, .entry rect', function() {
+  $('#canvas').on('click', '.entry text, .entry rect', function() {
     unFocus();
     var $entry = $(this).parent(),
       focus = $entry.attr('id', 'focus').find('text').text();
@@ -486,7 +476,7 @@ d3.json("/entries.json?group_by=type", function(root) {
   });
 
   $("#layout").on("change", function() {
-    changeLayout(this.value);
+    changeLayout($(this).find('.active').data('value'));
   });
 
   var areaCodes = {
@@ -534,12 +524,12 @@ d3.json("/entries.json?group_by=type", function(root) {
   function drilldownEntryEach(referencePoint, area, drilldowns) {
     var bounds = rt.get_tree(),
       nodes = rt.search(areaCodes[area](referencePoint, bounds));
-    console.log(area, nodes.map(function(each) { return each.word; } ));
+
     $.each(drilldowns, function(i, each) {
       if(nodes.length)
         nodes = drilldownCodes[each](d3.nest()).entries(nodes)[0].values;
     });
-    console.log(nodes);
+
     return nodes[0];
   }
 
@@ -596,8 +586,10 @@ d3.json("/entries.json?group_by=type", function(root) {
 
   function panToShow(d) {
     var viewport = getViewport();
-    if (contains(viewport, {x: d.x, y: d.y, width: entryWidth, height: entryHeight}))
+
+    if (contains(viewport, {x: d.x, y: d.y, width: entryWidth, height: entryHeight})) {
       return;
+    }
 
     var xMargin = viewport.width * 0.1,
       yMargin = viewport.height * 0.4;
@@ -625,8 +617,8 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function getViewport() {
-    var $svg = $(svg.node);
-    return {x: -pan.x, y: -pan.y, width: $svg.width(), height: $svg.height()};
+    var $sheet = $('#cheatsheet');
+    return {x: -pan.x, y: -pan.y, width: $sheet.width(), height: $sheet.height()};
   }
 
   function showSearchBox(e) {
@@ -652,8 +644,8 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function updateSearchCandidates(candidates) {
-    var li = d3.select('#search-box #candidates').selectAll('li').data(candidates),
-      cur = d3.select('#search-box #candidates .selected');
+    var li = d3.select('#candidates').selectAll('li').data(candidates),
+      cur = d3.select('#candidates .selected');
     li
       .enter()
       .append('li');
@@ -665,7 +657,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       .on('click', function(d) {
         jumpToCandidate($(this));
       });
-    $('#search-box #candidates .selected').removeClass('selected');
+    $('#candidates .selected').removeClass('selected');
     if (!cur.empty()) {
       var prev = cur.datum().word;
       li.each(function(d){
@@ -673,13 +665,13 @@ d3.json("/entries.json?group_by=type", function(root) {
           $(this).addClass('.selected');
       });
     }
-    if (!$('#search-box #candidates .selected').length)
+    if (!$('#candidates .selected').length)
       $('#search-next').trigger('click');
   }
 
   function jumpToCandidate($next, $cur) {
     if (!$cur || !$cur.length)
-      $cur = $('#search-box #candidates .selected');
+      $cur = $('#candidates .selected');
     $cur.removeClass('selected');
     $next.addClass('selected');
     d3.select($next.get()[0]).each(function(d){
@@ -690,11 +682,11 @@ d3.json("/entries.json?group_by=type", function(root) {
 
   $('#search-next, #search-prev').on('click', function(e) {
     e.preventDefault();
-    var $cur = $('#search-box #candidates .selected'),
+    var $cur = $('#candidates .selected'),
       selectNext = $(e.target).is('#search-next'),
       $next = selectNext ? $cur.next('li') : $cur.prev('li');
     if(!$next.length)
-      $next = $('#search-box #candidates li')[selectNext ? 'first' : 'last']();
+      $next = $('#candidates li')[selectNext ? 'first' : 'last']();
 
     jumpToCandidate($next, $cur);
   });
@@ -712,12 +704,31 @@ d3.json("/entries.json?group_by=type", function(root) {
     .bind('g', panRight)
     .bind('/', showSearchBox);
 
-  $('#layout option').each(function(i, each){
+  $('#layout button').each(function(i, each){
+    var $each = $(each);
     Mousetrap.bind(i + 1 + '', function() {
-      $(each).prop('selected', true);
-      $('#layout').trigger('change');
-    })
+      layoutButtonClicked($each);
+    });
+    $each.on('click', function() {
+      layoutButtonClicked($each);
+    });
   })
+
+  function layoutButtonClicked($button) {
+    if ($button.is('.active'))
+      return;
+    $('#layout').find('.active').removeClass('active');
+    $button.button('toggle');
+    $('#layout').trigger('change');
+  }
+
+  var app = $.sammy('#wrapper', function() {
+    this.get('#/sort/:layout', function() {
+      $('#layout')
+        .find('[data-value="' + this.params.layout + '"]').button('toggle').end()
+        .trigger('change');
+    });
+  });
 
   $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });

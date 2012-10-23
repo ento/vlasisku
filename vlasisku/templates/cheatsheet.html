@@ -17,23 +17,28 @@
     <link rel="stylesheet" href="${url_for('.static', filename='cheatsheet.css')}" type="text/css" media="screen, projection, print"/>
   </head>
   <body>
-    <div class="row">
-      <div class="span2">
-        <h2>Cheatsheet: cmavo</h2>
-        <select id="layout">
-          <option value="alphabet">ABC</option>
-          <option value="length">Length</option>
-          <option value="chapter" selected="1">Chapter</option>
-        </select>
-        <div id="search-box" style="display: none;">
-          <input id="q" autocomplete="off"/>
-          <a class="btn" id="search-prev">^</a>
-          <a class="btn" id="search-next">v</a>
-          <ul id="candidates"></ul>
+    <div id="wrapper">
+      <div id="sidebar">
+        <div id="settings">
+          <h2>Cheatsheet: cmavo</h2>
+          <div id="layout" class="btn-group">
+            <button class="btn active" data-value="alphabet">ABC</button>
+            <button class="btn" data-value="length">Length</button>
+            <button class="btn" data-value="chapter" selected="1">CLL</button>
+          </div>
+          <div id="search-box">
+            <div class="input-append">
+              <input id="q" class="input-mini" type="text" autocomplete="off"/>
+              <button id="search-prev" class="btn"><i class="icon icon-chevron-up"></i></button>
+              <button id="search-next" class="btn"><i class="icon icon-chevron-down"></i></button>
+            </div>
+          </div>
         </div>
+        <ul id="candidates">
+        </ul>
       </div>
-      <div id="cheatsheet" class="span8"></div>
-      <div id="inspector" class="span2"></div>
+      <div id="inspector"></div>
+      <div id="cheatsheet"></div>
     </div>
     <script type="text/javascript" src="${url_for('.static', filename='cheatsheet.js')}"/>
   </body>

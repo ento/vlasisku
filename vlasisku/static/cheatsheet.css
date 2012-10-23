@@ -1,5 +1,58 @@
+html,
+body {
+  height: 100%;
+}
+
 svg {
   overflow: hidden;
+}
+
+#wrapper {
+  height: 100%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+#sidebar {
+  border-right: 1px solid #888;
+  bottom: 0;
+  height: 100%;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 8px;
+  position: fixed;
+  top: 0;
+  width: 220px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#settings {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #fdf6e3
+}
+
+#inspector {
+  background-color: #eee8d5;
+  position: fixed;
+  top: 0;
+  left: 237px;
+  right: 0;
+  height: 50px;
+}
+
+#cheatsheet {
+  height: 100%;
+  overflow: scroll;
+  margin-top: 50px;
+  margin-left: 237px;
+}
+
+#canvas {
 }
 
 .background {
@@ -19,13 +72,6 @@ svg {
   box-shadow: 2px 2px 2px #333;
 }
 
-#bounds {
-  fill: transparent;
-/*  stroke: #00f;*/
-  stroke: transparent;
-  stroke-width: 2px;
-}
-
 .highlight {
   fill: #f00;
   stroke: #f00;
@@ -36,6 +82,19 @@ svg {
   stroke: #fc0;
   stroke-dasharray: 3, 3;
   stroke-width: 2px;
+}
+
+#candidates {
+  padding-top: 130px;
+}
+
+#candidates {
+  margin: 0;
+}
+
+#candidates li {
+  cursor: pointer;
+  list-style-type: none;
 }
 
 #candidates .selected {
