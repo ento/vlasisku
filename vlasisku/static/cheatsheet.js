@@ -113,7 +113,7 @@ var pan = {x: 0, y: 0},
 
 var x = d3.scale.linear().domain([0, colSize]).range([0, colSize * entryWidth]),
     y = d3.scale.linear(),
-    c = d3.scale.category20().domain(d3.range(20));
+    c = d3.scale.category20b().domain(d3.range(20));
 
 var svg = d3.select("#cheatsheet").append("svg")
     .attr("id", "canvas")
@@ -136,6 +136,8 @@ d3.json("/entries.json?group_by=type", function(root) {
   var index = [],
       nodes = root.cmavo,
       n = nodes.length,
+      gcIndex = calculateGrammarclassChapterIndex(root.cll),
+      gc = d3.scale.category10().domain(d3.range(gcIndex.maxIndex)),
       cursor, rt;
 
   function Layout(nodes) {
@@ -228,6 +230,34 @@ d3.json("/entries.json?group_by=type", function(root) {
     return {yMap: yMap, xMap: xMap, yMax: y};
   }
 
+  function calculateGrammarclassChapterIndex(cllIndex) {
+    var chapterGcs = {}, seenGcs = {};
+    for (var gc in cllIndex) {
+      var chapters = cllIndex[gc],
+        section = chapters[0][1],
+        chapter = chapters[0][0];
+
+      if (!chapterGcs[chapter])
+        chapterGcs[chapter] = [];
+      chapterGcs[chapter].push([section, gc]);
+    };
+
+    var rv = {},
+      max = 0;
+    for (var chapter in chapterGcs) {
+      var v = chapterGcs[chapter];
+      v.sort();
+      v.forEach(function(pair, i) {
+        var gc = pair[1];
+        rv[gc] = i;
+        max = Math.max(max, i);
+      });
+    };
+
+    rv.maxIndex = max;
+    return rv;
+  }
+
   // Precompute the orders.
   var layouts = {
     alphabet: new ABCLayout(nodes),
@@ -258,12 +288,20 @@ d3.json("/entries.json?group_by=type", function(root) {
   var entries = svg.selectAll(".entry")
       .data(nodes)
     .enter().append("g")
-      .attr("class", "entry");
+      .attr("class", "entry"),
+    crestWidth = 5,
+    crestHeight = entryHeight * (1.0 - entryPadding) * 0.5;
 
   entries.append("rect")
-      .attr("width", "5")
-      .attr("height", entryHeight * (1.0 - entryPadding))
+      .attr("width", crestWidth)
+      .attr("height", crestHeight)
       .attr("fill", function(d) { return c(findChapter(d)[0]); });
+
+  entries.append("rect")
+      .attr("width", crestWidth)
+      .attr("height", crestHeight)
+      .attr("transform", "translate(0," + crestHeight + ")")
+      .attr("fill", function(d) { return gc(gcIndex[d.grammarclass]); });
 
   entries.append("text")
       .attr("x", 6)
