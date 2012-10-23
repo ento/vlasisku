@@ -101,6 +101,23 @@ svg {
   background-color: #eee8d5;
 }
 
+#inspector {
+  color: #586e75;
+  line-height: 50px;
+}
+
+#inspector .word {
+  font-size: 30px;
+}
+
+#inspector .grammarclass {
+  font-size: 22px;
+}
+
+#inspector.error .description {
+  color: #dc322f;
+}
+
 #backdrop rect {
   fill: #fff;
   fill-opacity: 0.5;

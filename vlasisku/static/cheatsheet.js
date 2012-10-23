@@ -432,8 +432,16 @@ d3.json("/entries.json?group_by=type", function(root) {
       .attr('transform', translate(d));
 
     d3.json("/entries.json?lite=0&word=" + d.word, function(response) {
-      $('#inspector')
-        .text(d.word + ' ' + d.grammarclass + ' ' + response.word.textdefinition);
+      var text = ['<span class="word">', d.word, '</span><span class="grammarclass">', d.grammarclass, '</span><span class="description">'],
+        classOp = 'removeClass';
+      if (response) {
+        text.push(response.word.textdefinition);
+      } else {
+        classOp = 'addClass';
+        text.push('Failed to load description');
+      }
+      text.push('</span>');
+      $('#inspector')[classOp]('error').html(text.join(' '))
     });
     if (!cursor || cursor.d.word !== d.word)
       cursor = {d: d};
