@@ -108,8 +108,8 @@ function numericDescending(a, b) {
 }
 
 var pan = {x: 0, y: 0},
-    colSize = 10,
-    entryWidth = 48,
+    colSize = 15,
+    entryWidth = 54,
     entryHeight = 20,
     entryPadding = 0.2,
     width = colSize * entryWidth;
@@ -138,7 +138,7 @@ svg.append("g")
 
 d3.json("/entries.json?group_by=type", function(root) {
   var index = [],
-      nodes = root.cmavo,
+      nodes = root.cmavo.concat(root['experimental cmavo']),
       n = nodes.length,
       gcIndex = calculateGrammarclassChapterIndex(root.cll),
       gc = d3.scale.category10().domain(d3.range(gcIndex.maxIndex)),
@@ -324,13 +324,15 @@ d3.json("/entries.json?group_by=type", function(root) {
       .text(function(d) { return d.word; });
 
   function findChapter(entry) {
+    var unknown = [99, 0];
+
     if (!entry.grammarclass)
-      return [];
+      return unknown;
     var gc = entry.grammarclass,
         variants = [gc, gc.replace(/\*|\d$/g, ''), gc.replace(/\*|\d$|\d[a-z]/g, '')],
         keys = variants.filter(function(v) { return root.cll[v]; });
     if (!keys.length)
-      return [];
+      return unknown;
 
     return root.cll[keys[0]][0];
   }
