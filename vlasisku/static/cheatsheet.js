@@ -13,6 +13,10 @@ function zeroFill( number, width ) {
   return number + ""; // always return a string
 }
 
+function slugify(word) {
+  return word.replace("'", "h");
+}
+
 function growRectangle(rect, point) {
   if (point.x < rect.x) {
     rect.width += rect.x - point.x;
@@ -55,7 +59,6 @@ function evade(danger, victim) {
     dy = danger.y + danger.height - victim.y;
   }
   var evadeToX = Math.abs(dx) < Math.abs(dy);
-    console.log(dangerCenter, victimCenter, danger, victim, dx, dy);
   return {x: (evadeToX ? dx : 0), y: (evadeToX ? 0 : dy)};
 }
 
@@ -124,7 +127,8 @@ svg.append("g")
   .attr('id', 'cursor')
   .append('rect')
   .attr('width', entryWidth)
-  .attr('height', entryHeight);
+  .attr('height', entryHeight)
+  .attr('transform', 'translate(0,-3)');
 
 svg.append("g")
   .attr('id', 'backdrop')
@@ -282,25 +286,31 @@ d3.json("/entries.json?group_by=type", function(root) {
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);
 
+    console.log('scroll', -pan.x, -pan.y);
     $('#cheatsheet').scrollLeft(-pan.x).scrollTop(-pan.y);
   }
 
   var entries = svg.selectAll(".entry")
       .data(nodes)
     .enter().append("g")
-      .attr("class", "entry"),
+      .attr("class", "entry")
+      .attr("id", function(d) { return slugify(d.word); })
+      .attr("transform", "translate(0,-10000)"),
     crestWidth = 5,
-    crestHeight = entryHeight * (1.0 - entryPadding) * 0.5;
+    crestOffset = 0,
+    fontSize = 14 - 3,
+    crestGap = (fontSize - crestOffset) - crestWidth * 2;
 
   entries.append("rect")
       .attr("width", crestWidth)
-      .attr("height", crestHeight)
+      .attr("height", crestWidth)
+      .attr("transform", "translate(0," + crestOffset + ")")
       .attr("fill", function(d) { return c(findChapter(d)[0]); });
 
   entries.append("rect")
       .attr("width", crestWidth)
-      .attr("height", crestHeight)
-      .attr("transform", "translate(0," + crestHeight + ")")
+      .attr("height", crestWidth)
+      .attr("transform", "translate(0," + (crestOffset + crestWidth + crestGap) + ")")
       .attr("fill", function(d) { return gc(gcIndex[d.grammarclass]); });
 
   entries.append("text")
@@ -308,7 +318,6 @@ d3.json("/entries.json?group_by=type", function(root) {
       .attr("y", 0)
       .attr("width", entryWidth)
       .attr("height", entryHeight * (1.0 - entryPadding))
-      .attr("dy", ".64em")
       .attr("text-anchor", "start")
       .on("mouseover", mouseover)
       .on("mouseout", mouseout)
@@ -330,7 +339,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     return layouts[$('#layout .active').data('value')];
   }
 
-  function changeLayout(value) {
+  function changeLayout(value, callback) {
     var layout = value ? layouts[value] : currentLayout();
     updateScale(layout);
 
@@ -341,19 +350,22 @@ d3.json("/entries.json?group_by=type", function(root) {
          return translate(d, layout.x(d), layout.y(d));
       });
 
+    // move backdrop to the very end
     $('#backdrop').appendTo('#content');
     layoutFocus();
     t.attr('data-last-update', (new Date()).getTime()).each('end', function() {
       rebuildIndex();
       updateCursor();
       adjustCanvasSize();
+      if (callback) callback();
     });
+    return t;
   }
 
   function layoutFocus() {
     var layout = currentLayout(),
       confusables = {t: [], r: [], b: [], l: [], identical: []},
-      focus = $('#focus text').text();
+      focus = $('.focus-center text').text();
 
     if (!focus) {
       d3.select('#backdrop').attr('class', '');
@@ -466,6 +478,8 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function moveCursor(d) {
+    d3.select('.entry.hover').classed('hover', false);
+    d3.select('#' + slugify(d.word)).classed('hover', true);
     d3.select('#cursor')
       .attr('transform', translate(d));
 
@@ -494,26 +508,28 @@ d3.json("/entries.json?group_by=type", function(root) {
   }
 
   function unFocus() {
-    d3.select('#focus').attr('id', null);
+    d3.select('.focus-center').classed('focus-center', false);
     d3.selectAll('.entry.focus').attr('class', 'entry');
   }
 
   $('#canvas').on('click', '.entry text, .entry rect', function() {
     unFocus();
     var $entry = $(this).parent(),
-      focus = $entry.attr('id', 'focus').find('text').text();
+      focus = $entry.find('text').text(),
+      d = d3.select($entry.get()[0]).classed('focus-center', true).datum();
     d3.selectAll('.entry').each(function() {
       var each = $(this).find('text').text(),
         conf = isConfusable(focus, each);
       if (conf) {
         var d = d3.select(this)
-          .attr('class', 'entry focus ' + conf.type)
+          .classed('focus', true)
+          .classed(conf.type, true)
           .datum();
         d.focus_type = conf.type;
         d.diff_index = conf.type === 'singleletter' ? parseInt(conf.index) : null;
       }
     });
-    changeLayout();
+    changeLayout(null, function() { panToShow(d); });
   });
 
   $('#backdrop').on('click', function() {

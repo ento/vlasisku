@@ -59,29 +59,41 @@ svg {
   fill: #fff;
 }
 
+.entry {
+  cursor: pointer;
+}
+
 .entry text {
-  fill: #000;
-  stroke: #444;
+  alignment-baseline: text-before-edge;
+  fill: #657b83;
   font-size: 16px;
   font-family: monospace;
+  text-anchor: start;
+}
+
+.entry text tspan {
+  alignment-baseline: text-before-edge;
 }
 
 .entry.focus text {
-  fill: #f00;
-  stroke: #f00;
-  box-shadow: 2px 2px 2px #333;
+  fill: #586e75;
+}
+
+.entry.hover text {
+  fill: #fdf6e3;
 }
 
 .highlight {
-  fill: #f00;
-  stroke: #f00;
+  fill: #073642;
+  font-weight: 900;
+}
+
+.entry.hover .highlight {
+  fill: #fdf6e3;
 }
 
 #cursor {
-  fill: transparent;
-  stroke: #fc0;
-  stroke-dasharray: 3, 3;
-  stroke-width: 2px;
+  fill: #b58900;
 }
 
 #candidates {
