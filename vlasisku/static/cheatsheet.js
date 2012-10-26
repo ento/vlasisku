@@ -1,75 +1,3 @@
-if (typeof String.prototype.startsWith != 'function') {
-  String.prototype.startsWith = function (str){
-    return this.slice(0, str.length) == str;
-  };
-}
-
-function zeroFill( number, width ) {
-  width -= number.toString().length;
-  if ( width > 0 )
-  {
-    return new Array( width + (/\./.test( number ) ? 2 : 1) ).join( '0' ) + number;
-  }
-  return number + ""; // always return a string
-}
-
-function slugify(word) {
-  return word.replace("'", "h");
-}
-
-function growRectangle(rect, point) {
-  if (point.x < rect.x) {
-    rect.width += rect.x - point.x;
-    rect.x = point.x;
-  } else if ((rect.x + rect.width) < point.x) {
-    rect.width += point.x - (rect.x + rect.width);
-  }
-  if (point.y < rect.y) {
-    rect.height += rect.y - point.y;
-    rect.y = point.y;
-  } else if ((rect.y + rect.height) < point.y) {
-    rect.height += point.y - (rect.y + rect.height);
-  }
-}
-
-function contains(aRect, bRect) {
-  var bx_lt_ax = bRect.x < aRect.x,
-    ar_lt_br = (aRect.x + aRect.width) < (bRect.x + (bRect.width || 0));
-  if (bx_lt_ax || ar_lt_br)
-    return false;
-  var by_lt_ay = bRect.y < aRect.y,
-    ab_lt_bb = (aRect.y + aRect.height) < (bRect.y + (bRect.height || 0));
-  if (by_lt_ay || ab_lt_bb)
-    return false;
-  return true;
-}
-
-function evade(danger, victim) {
-  var dangerCenter = center(danger),
-    victimCenter = center(victim),
-    dx, dy;
-  if (victimCenter.x < dangerCenter.x) {
-    dx = danger.x - (victim.x + victim.width);
-  } else {
-    dx = danger.x + danger.width - victim.x;
-  }
-  if (victimCenter.y < dangerCenter.y) {
-    dy = danger.y - (victim.y + victim.height);
-  } else {
-    dy = danger.y + danger.height - victim.y;
-  }
-  var evadeToX = Math.abs(dx) < Math.abs(dy);
-  return {x: (evadeToX ? dx : 0), y: (evadeToX ? 0 : dy)};
-}
-
-function center(rect) {
-  return {x: rect.x + rect.width * 0.5, y: rect.y + rect.height * 0.5};
-}
-
-function move(rect, diff) {
-  return {x: rect.x + diff.x, y: rect.y + diff.y, width: rect.width, height: rect.height};
-}
-
 function translate(d, x, y) {
   if (typeof(x) !== 'undefined')
     d.x = x;
@@ -78,166 +6,29 @@ function translate(d, x, y) {
   return 'translate(' + d.x + ',' + d.y + ')';
 }
 
-function debounce(fn, timeout) {
-  var timeoutID = -1;
-  return function() {
-    if (timeoutID > -1) {
-      window.clearTimeout(timeoutID);
-    }
-    timeoutID = window.setTimeout(fn, timeout);
-  }
-};
-
-function extend(superType, submethods) {
-  function factory() {};
-  factory.prototype = superType.prototype;
-  var subproto = new factory();
-  subproto.superType = superType;
-  for (var key in submethods) {
-    subproto[key] = submethods[key];
-  }
-  return subproto;
+function CLLIndex(cll) {
+  this.cll = cll;
+  this.gcIndex = this.calculateGrammarclassChapterIndex();
 }
+CLLIndex.prototype = {
+  findChapter: function (entry) {
+    var unknown = [99, 0];
 
-function numericAscending(a, b) {
-  return d3.ascending(parseFloat(a), parseFloat(b));
-}
+    if (!entry.grammarclass)
+      return unknown;
+    var gc = entry.grammarclass,
+        variants = [gc, gc.replace(/\*|\d$/g, ''), gc.replace(/\*|\d$|\d[a-z]/g, '')],
+        keys = variants.filter(function(v) { return this.cll[v]; }, this);
+    if (!keys.length)
+      return unknown;
 
-function numericDescending(a, b) {
-  return -numericAscending(a, b);
-}
+    return this.cll[keys[0]][0];
+  },
 
-var pan = {x: 0, y: 0},
-    colSize = 15,
-    entryWidth = 54,
-    entryHeight = 20,
-    entryPadding = 0.2,
-    width = colSize * entryWidth;
-
-var x = d3.scale.linear().domain([0, colSize]).range([0, colSize * entryWidth]),
-    y = d3.scale.linear(),
-    c = d3.scale.category20b().domain(d3.range(20));
-
-var svg = d3.select("#cheatsheet").append("svg")
-    .attr("id", "canvas")
-  .append("g")
-    .attr("id", "content");
-
-svg.append("g")
-  .attr('id', 'cursor')
-  .append('rect')
-  .attr('width', entryWidth)
-  .attr('height', entryHeight)
-  .attr('transform', 'translate(0,-3)');
-
-svg.append("g")
-  .attr('id', 'backdrop')
-  .append('rect')
-  .attr('width', 1000)
-  .attr('height', 1000);
-
-d3.json("/entries.json?group_by=type", function(root) {
-  var index = [],
-      nodes = root.cmavo.concat(root['experimental cmavo']),
-      n = nodes.length,
-      gcIndex = calculateGrammarclassChapterIndex(root.cll),
-      gc = d3.scale.category10().domain(d3.range(gcIndex.maxIndex)),
-      cursor, rt;
-
-  function Layout(nodes) {
-    this.coords = calculateCoords(nodes, this);
-  }
-
-  Layout.prototype = {
-    letters: 'abcdefgijklmnoprstuvxyz',
-
-    categorize: function() {
-      throw 'Not implemented';
-    },
-
-    x: function(d) {
-      return x(this.coords.xMap[d.word] % colSize);
-    },
-
-    y: function(d) {
-      var cat = this.categorize(d);
-      return y(this.coords.yMap[[cat.mainIndex, cat.subIndex]]) + Math.floor(this.coords.xMap[d.word] / colSize) * entryHeight;
-    }
-  };
-
-  function ABCLayout() {
-    this.superType.apply(this, arguments);
-  }
-
-  ABCLayout.prototype = extend(Layout, {
-    categorize: function(d) {
-      return {
-        mainIndex: this.letters.indexOf(d.word[0]),
-        subIndex: d.word.length - 1
-      };
-    }
-  });
-
-  function LengthLayout() {
-    this.superType.apply(this, arguments);
-  }
-
-  LengthLayout.prototype = extend(Layout, {
-    categorize: function(d) {
-      return {
-        mainIndex: d.word.length,
-        subIndex: this.letters.indexOf(d.word[0])
-      };
-    }
-  });
-
-  function ChapterLayout() {
-    this.superType.apply(this, arguments);
-  }
-
-  ChapterLayout.prototype = extend(Layout, {
-    categorize: function(d) {
-      var chapter = findChapter(d);
-      return {
-        mainIndex: chapter[0],
-        subIndex: chapter[1]
-      };
-    }
-  });
-
-  function calculateCoords(nodes, layout) {
-    var yMap = {},
-      xMap = {},
-      y = 0,
-      index = d3.nest()
-      .key(function(d) { return zeroFill(layout.categorize(d).mainIndex, 2); })
-      .sortKeys(d3.ascending)
-      .key(function(d) { return zeroFill(layout.categorize(d).subIndex, 2); })
-      .sortKeys(d3.ascending)
-      .sortValues(function(a, b) { return d3.ascending(a.word, b.word); })
-      .entries(nodes);
-
-    index.forEach(function(maingroup) {
-      maingroup.values.forEach(function(subgroup) {
-        subgroup.height = Math.ceil(subgroup.values.length / colSize);
-        subgroup.y = y;
-
-        var key = [parseInt(maingroup.key, 10), parseInt(subgroup.key, 10)];
-        yMap[key] = subgroup.y;
-        subgroup.values.forEach(function(entry, i) {
-          xMap[entry.word] = i;
-        });
-        y = y + subgroup.height;
-      });
-      y += 1;
-    });
-    return {yMap: yMap, xMap: xMap, yMax: y};
-  }
-
-  function calculateGrammarclassChapterIndex(cllIndex) {
+  calculateGrammarclassChapterIndex: function() {
     var chapterGcs = {}, seenGcs = {};
-    for (var gc in cllIndex) {
-      var chapters = cllIndex[gc],
+    for (var gc in this.cll) {
+      var chapters = this.cll[gc],
         section = chapters[0][1],
         chapter = chapters[0][0];
 
@@ -261,21 +52,94 @@ d3.json("/entries.json?group_by=type", function(root) {
     rv.maxIndex = max;
     return rv;
   }
+};
 
-  // Precompute the orders.
-  var layouts = {
-    alphabet: new ABCLayout(nodes),
-    chapter: new ChapterLayout(nodes),
-    length: new LengthLayout(nodes)
-  };
+function SpatialIndex() {
+  this.rt = new RTree();
+}
+SpatialIndex.prototype = {
+  getBounds: function() {
+    return this.rt.get_tree();
+  },
 
+  rebuildIndex: function(nodes) {
+    this.rt = new RTree();
+    nodes.forEach(function(n) {
+      this.rt.insert({x: n.x, y: n.y, w: C.entryWidth, h: C.entryHeight}, n);
+    }, this);
+  },
+
+  drilldown: function(referencePoint, specs) {
+    for(var i in specs) {
+      var found = this.drilldownEach(referencePoint, specs[i][0], specs[i][1]);
+      if (found)
+        return found;
+    }
+    return null;
+  },
+
+  drilldownEach: function(referencePoint, area, drilldowns) {
+    var bounds = this.rt.get_tree(),
+      nodes = this.rt.search(this.areaCodes[area](referencePoint, bounds));
+
+    $.each(drilldowns, function(i, each) {
+      if(nodes.length)
+        nodes = this.drilldownCodes[each](d3.nest()).entries(nodes)[0].values;
+    });
+
+    return nodes[0];
+  },
+
+  areaCodes: {
+    // left row
+    lr: function(p, bounds) { return {x: bounds.x, y: p.y + 1, w: p.x - bounds.x - 1, h: C.entryHeight - 2}; },
+
+    // left
+    l: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: p.x - 1 - bounds.x, h: bounds.h}; },
+
+    // top column
+    tc: function(p, bounds) { return {x: p.x + 1, y: bounds.y, w: C.entryWidth - 2, h: p.y - 1 - bounds.y}; },
+ 
+    // top
+    t: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: bounds.w, h: p.y - 1 - bounds.y}; },
+
+    // right row
+    rr: function(p, bounds) { return {x: p.x + C.entryWidth + 1, y: p.y + 1, w: bounds.x + bounds.w - p.x - C.entryWidth - 1, h: C.entryHeight - 2}; },
+
+    // right
+    r: function(p, bounds) { return {x: p.x + C.entryWidth + 1, y: bounds.y, w: bounds.x + bounds.w - (p.x + C.entryWidth + 1), h: bounds.h}; },
+
+    // bottom column
+    bc: function(p, bounds) { return {x: p.x + 1, y: p.y + C.entryHeight + 1, w: C.entryWidth - 2, h: bounds.y + bounds.h - (p.y + C.entryHeight + 1)}; },
+
+    // bottom
+    b: function(p, bounds) { return {x: bounds.x, y: p.y + C.entryHeight + 1, w: bounds.w, h: bounds.h - (p.y + C.entryHeight + 1 - bounds.y)}; }
+  },
+
+  drilldownCodes: {
+    l: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericAscending); },
+    t: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericAscending); },
+    r: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericDescending); },
+    b: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericDescending); }
+  }
+};
+
+var C = {};
+C.colSize = 15;
+C.entryWidth = 54;
+C.entryHeight = 20;
+C.entryPadding = 0.2;
+
+d3.json("/entries.json?group_by=type", function(root) {
+  // model -> model
   function updateScale(layout) {
-    var height = layout.coords.yMax * entryHeight;
+    var height = layout.coords.yMax * C.entryHeight;
     y.domain([0, layout.coords.yMax]).range([0, height]);
   }
 
+  // model -> view
   function adjustCanvasSize() {
-    var bounds = rt.get_tree(),
+    var bounds = spatial.getBounds(),
       canvasWidth = bounds.w,
       canvasHeight = bounds.h + 50;
 
@@ -286,62 +150,16 @@ d3.json("/entries.json?group_by=type", function(root) {
       .attr("width", canvasWidth)
       .attr("height", canvasHeight);
 
-    console.log('scroll', -pan.x, -pan.y);
     $('#cheatsheet').scrollLeft(-pan.x).scrollTop(-pan.y);
   }
 
-  var entries = svg.selectAll(".entry")
-      .data(nodes)
-    .enter().append("g")
-      .attr("class", "entry")
-      .attr("id", function(d) { return slugify(d.word); })
-      .attr("transform", "translate(0,-10000)"),
-    crestWidth = 5,
-    crestOffset = 0,
-    fontSize = 14 - 3,
-    crestGap = (fontSize - crestOffset) - crestWidth * 2;
-
-  entries.append("rect")
-      .attr("width", crestWidth)
-      .attr("height", crestWidth)
-      .attr("transform", "translate(0," + crestOffset + ")")
-      .attr("fill", function(d) { return c(findChapter(d)[0]); });
-
-  entries.append("rect")
-      .attr("width", crestWidth)
-      .attr("height", crestWidth)
-      .attr("transform", "translate(0," + (crestOffset + crestWidth + crestGap) + ")")
-      .attr("fill", function(d) { return gc(gcIndex[d.grammarclass]); });
-
-  entries.append("text")
-      .attr("x", 6)
-      .attr("y", 0)
-      .attr("width", entryWidth)
-      .attr("height", entryHeight * (1.0 - entryPadding))
-      .attr("text-anchor", "start")
-      .on("mouseover", mouseover)
-      .on("mouseout", mouseout)
-      .text(function(d) { return d.word; });
-
-  function findChapter(entry) {
-    var unknown = [99, 0];
-
-    if (!entry.grammarclass)
-      return unknown;
-    var gc = entry.grammarclass,
-        variants = [gc, gc.replace(/\*|\d$/g, ''), gc.replace(/\*|\d$|\d[a-z]/g, '')],
-        keys = variants.filter(function(v) { return root.cll[v]; });
-    if (!keys.length)
-      return unknown;
-
-    return root.cll[keys[0]][0];
-  }
-
+  // view -> model
   function currentLayout() {
     return layouts[$('#layout .active').data('value')];
   }
 
-  function changeLayout(value, callback) {
+  // model -> view
+  function updateMainView(value, callback) {
     var layout = value ? layouts[value] : currentLayout();
     updateScale(layout);
 
@@ -356,7 +174,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     $('#backdrop').appendTo('#content');
     layoutFocus();
     t.attr('data-last-update', (new Date()).getTime()).each('end', function() {
-      rebuildIndex();
+      spatial.rebuildIndex(nodes);
       updateCursor();
       adjustCanvasSize();
       if (callback) callback();
@@ -364,6 +182,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     return t;
   }
 
+  // model -> view
   function layoutFocus() {
     var layout = currentLayout(),
       confusables = {t: [], r: [], b: [], l: [], identical: []},
@@ -395,7 +214,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     var center = confusables.identical[0];
     center.x = layout.x(center.d);
     center.y = layout.y(center.d);
-    var bounds = {x: center.x, y: center.y, width: entryWidth, height: entryHeight};
+    var bounds = {x: center.x, y: center.y, width: C.entryWidth, height: C.entryHeight};
 
     for(type in confusables) {
       if (type === 'identical')
@@ -413,7 +232,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       .duration(1000)
       .delay(function(d, i) { return i * 4; })
       .attr('transform', function(d) {
-        var each = {x: layout.x(d), y: layout.y(d), width: entryWidth, height: entryHeight},
+        var each = {x: layout.x(d), y: layout.y(d), width: C.entryWidth, height: C.entryHeight},
           run = evade(bounds, each),
           evaded = move(each, {x: run.x * 1.2, y: run.y * 1.2});
         
@@ -421,6 +240,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       });
   }
 
+  // model -> view
   function layoutFocusRow(center, direction, confusables) {
     confusables.sort(function(a, b) { return a.text.localeCompare(b.text); });
     var centerIndex = confusables.indexOf(center.text),
@@ -430,11 +250,12 @@ d3.json("/entries.json?group_by=type", function(root) {
       var each = reverse ? confusables[confusables.length - i - 1] : confusables[i],
         pos = layoutFocusEntry(center, direction, each, parseInt(i));
       if (pos)
-        positions.push(pos, {x: pos.x + entryWidth, y: pos.y + entryHeight});
+        positions.push(pos, {x: pos.x + C.entryWidth, y: pos.y + C.entryHeight});
     }
     return positions;
   }
 
+  // model -> view
   function layoutFocusEntry(center, type, each, distance) {
     var directionMap = {
         't': {x: 0, y: -1},
@@ -447,8 +268,8 @@ d3.json("/entries.json?group_by=type", function(root) {
     if (!direction)
       return null;
     
-    var dx = center.x + entryWidth * direction.x * (distance + 1),
-      dy = center.y + entryHeight * direction.y * (distance + 1);
+    var dx = center.x + C.entryWidth * direction.x * (distance + 1),
+      dy = center.y + C.entryHeight * direction.y * (distance + 1);
 
     d3.select(each.el)
       .transition()
@@ -461,17 +282,11 @@ d3.json("/entries.json?group_by=type", function(root) {
     return {x: dx, y: dy};
   }
 
-  function rebuildIndex() {
-    rt = new RTree();
-    nodes.forEach(function(n) {
-      rt.insert({x: n.x, y: n.y, w: entryWidth, h: entryHeight}, n);
-    });
-  }
-
+  // model -> view
   function updateCursor() {
     var d;
     if (!cursor) {
-      d = rt.search({x: 0, y: 0, h: 1, w: 1});
+      d = spatial.rt.search({x: 0, y: 0, h: 1, w: 1});
       d = (d && d.length) ? d[0] : nodes[0];
     } else {
       d = cursor.d;
@@ -479,6 +294,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     moveCursor(d);
   }
 
+  // model -> view
   function moveCursor(d) {
     d3.select('.entry.hover').classed('hover', false);
     d3.select('#' + slugify(d.word)).classed('hover', true);
@@ -501,19 +317,89 @@ d3.json("/entries.json?group_by=type", function(root) {
       cursor = {d: d};
   }
 
+  // view -> model
   function mouseover() {
     moveCursor(d3.select(this).datum());
   }
 
-  function mouseout() {
-    //d3.selectAll("text").classed("active", false);
-  }
-
+  // model -> view
   function unFocus() {
     d3.select('.focus-center').classed('focus-center', false);
     d3.selectAll('.entry.focus').attr('class', 'entry');
   }
 
+  var pan = {x: 0, y: 0},
+      x = d3.scale.linear().domain([0, C.colSize]).range([0, C.colSize * C.entryWidth]),
+      y = d3.scale.linear(),
+      c = d3.scale.category20b().domain(d3.range(20));
+  
+  var svg = d3.select("#cheatsheet").append("svg")
+      .attr("id", "canvas")
+    .append("g")
+      .attr("id", "content");
+  
+  svg.append("g")
+    .attr('id', 'cursor')
+    .append('rect')
+    .attr('width', C.entryWidth)
+    .attr('height', C.entryHeight)
+    .attr('transform', 'translate(0,-3)');
+  
+  svg.append("g")
+    .attr('id', 'backdrop')
+    .append('rect')
+    .attr('width', 1000)
+    .attr('height', 1000);
+
+  var index = [],
+      cll = new CLLIndex(root.cll),
+      spatial = new SpatialIndex(),
+      nodes = root.cmavo.concat(root['experimental cmavo']),
+      n = nodes.length,
+      gc = d3.scale.category10().domain(d3.range(cll.gcIndex.maxIndex)),
+      cursor;
+
+  // Precompute the orders.
+  var scales = {x: x, y: y},
+    layouts = {
+      alphabet: new ABCLayout(scales, nodes, cll),
+      chapter: new ChapterLayout(scales, nodes, cll),
+      length: new LengthLayout(scales, nodes, cll)
+    };
+
+  var entries = svg.selectAll(".entry")
+      .data(nodes)
+    .enter().append("g")
+      .attr("class", "entry")
+      .attr("id", function(d) { return slugify(d.word); })
+      .attr("transform", "translate(0,-10000)"),
+    crestWidth = 5,
+    crestOffset = 0,
+    fontHeight = 14 - 3,
+    crestGap = (fontHeight - crestOffset) - crestWidth * 2;
+
+  entries.append("rect")
+      .attr("width", crestWidth)
+      .attr("height", crestWidth)
+      .attr("transform", "translate(0," + crestOffset + ")")
+      .attr("fill", function(d) { return c(cll.findChapter(d)[0]); });
+
+  entries.append("rect")
+      .attr("width", crestWidth)
+      .attr("height", crestWidth)
+      .attr("transform", "translate(0," + (crestOffset + crestWidth + crestGap) + ")")
+      .attr("fill", function(d) { return gc(cll.gcIndex[d.grammarclass]); });
+
+  entries.append("text")
+      .attr("x", 6)
+      .attr("y", 0)
+      .attr("width", C.entryWidth)
+      .attr("height", C.entryHeight * (1.0 - C.entryPadding))
+      .attr("text-anchor", "start")
+      .on("mouseover", mouseover)
+      .text(function(d) { return d.word; });
+
+  // view -> model -> view
   $('#canvas').on('click', '.entry text, .entry rect', function() {
     unFocus();
     var $entry = $(this).parent(),
@@ -531,127 +417,86 @@ d3.json("/entries.json?group_by=type", function(root) {
         d.diff_index = conf.type === 'singleletter' ? parseInt(conf.index) : null;
       }
     });
-    changeLayout(null, function() { panToShow(d); });
+    updateMainView(null, function() { panToShow(d); });
   });
 
+  // view -> model -> view
   $('#backdrop').on('click', function() {
     unFocus();
-    changeLayout();
+    updateMainView();
   });
 
+  // view -> model -> view
   $("#layout").on("change", function() {
-    changeLayout($(this).find('.active').data('value'));
+    updateMainView($(this).find('.active').data('value'));
   });
 
-  var areaCodes = {
-    // left row
-    lr: function(p, bounds) { return {x: bounds.x, y: p.y + 1, w: p.x - bounds.x - 1, h: entryHeight - 2}; },
-
-    // left
-    l: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: p.x - 1 - bounds.x, h: bounds.h}; },
-
-    // top column
-    tc: function(p, bounds) { return {x: p.x + 1, y: bounds.y, w: entryWidth - 2, h: p.y - 1 - bounds.y}; },
-
-    // top
-    t: function(p, bounds) { return {x: bounds.x, y: bounds.y, w: bounds.w, h: p.y - 1 - bounds.y}; },
-
-    // right row
-    rr: function(p, bounds) { return {x: p.x + entryWidth + 1, y: p.y + 1, w: bounds.x + bounds.w - p.x - entryWidth - 1, h: entryHeight - 2}; },
-
-    // right
-    r: function(p, bounds) { return {x: p.x + entryWidth + 1, y: bounds.y, w: bounds.x + bounds.w - (p.x + entryWidth + 1), h: bounds.h}; },
-
-    // bottom column
-    bc: function(p, bounds) { return {x: p.x + 1, y: p.y + entryHeight + 1, w: entryWidth - 2, h: bounds.y + bounds.h - (p.y + entryHeight + 1)}; },
-
-    // bottom
-    b: function(p, bounds) { return {x: bounds.x, y: p.y + entryHeight + 1, w: bounds.w, h: bounds.h - (p.y + entryHeight + 1 - bounds.y)}; }
-  };
-
-  var drilldownCodes = {
-    l: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericAscending); },
-    t: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericAscending); },
-    r: function(index) { return index.key(function(d) { return d.x; }).sortKeys(numericDescending); },
-    b: function(index) { return index.key(function(d) { return d.y; }).sortKeys(numericDescending); }
-  };
-
-  function drilldownEntry(referencePoint, specs) {
-    for(var i in specs) {
-      var found = drilldownEntryEach(referencePoint, specs[i][0], specs[i][1]);
-      if (found)
-        return found;
-    }
-    return null;
-  }
-
-  function drilldownEntryEach(referencePoint, area, drilldowns) {
-    var bounds = rt.get_tree(),
-      nodes = rt.search(areaCodes[area](referencePoint, bounds));
-
-    $.each(drilldowns, function(i, each) {
-      if(nodes.length)
-        nodes = drilldownCodes[each](d3.nest()).entries(nodes)[0].values;
-    });
-
-    return nodes[0];
-  }
-
+  // controller
   function selectLeft() {
-    var selected = drilldownEntry(cursor.d, [['lr', 'r'], ['t', 'br']]);
+    var selected = spatial.drilldown(cursor.d, [['lr', 'r'], ['t', 'br']]);
     if (selected)
       moveCursor(selected);
   }
 
+  // controller
   function selectRight() {
-    var selected = drilldownEntry(cursor.d, [['rr', 'l'], ['b', 'tl']]);
+    var selected = spatial.drilldown(cursor.d, [['rr', 'l'], ['b', 'tl']]);
     if (selected)
       moveCursor(selected);
   }
 
+  // controller
   function selectUp() {
-    var selected = drilldownEntry(cursor.d, [['tc', 'b']]);
+    var selected = spatial.drilldown(cursor.d, [['tc', 'b']]);
     if (selected)
       moveCursor(selected);
   }
 
+  // controller
   function selectDown() {
-    var selected = drilldownEntry(cursor.d, [['bc', 't']]);
+    var selected = spatial.drilldown(cursor.d, [['bc', 't']]);
     if (selected)
       moveCursor(selected);
   }
 
+  // controller
   function panLeft() {
-    panBy(-entryWidth * 0.5);
+    panBy(-C.entryWidth * 0.5);
   }
 
+  // controller
   function panUp() {
-    panBy(0, -entryHeight);
+    panBy(0, -C.entryHeight);
   }
 
+  // controller
   function panDown() {
-    panBy(0, entryHeight);
+    panBy(0, C.entryHeight);
   }
 
+  // controller
   function panRight() {
-    panBy(entryWidth * 0.5);
+    panBy(C.entryWidth * 0.5);
   }
 
+  // controller
   function panBy(x, y) {
     pan.x += x || 0;
     adjustCanvasSize();
   }
 
+  // controller
   function panTo(p) {
     pan.x = -p.x;
     pan.y = -p.y;
     adjustCanvasSize();
   }
 
+  // controller
   function panToShow(d) {
     var viewport = getViewport();
 
-    if (contains(viewport, {x: d.x, y: d.y, width: entryWidth, height: entryHeight})) {
+    if (contains(viewport, {x: d.x, y: d.y, width: C.entryWidth, height: C.entryHeight})) {
       return;
     }
 
@@ -660,8 +505,8 @@ d3.json("/entries.json?group_by=type", function(root) {
 
     viewport.right = viewport.x + viewport.width;
     viewport.bottom = viewport.y + viewport.height;
-    dRight = d.x + entryWidth;
-    dBottom = d.y + entryHeight;
+    dRight = d.x + C.entryWidth;
+    dBottom = d.y + C.entryHeight;
 
     // d | viewport |
     if (d.x < viewport.x)
@@ -680,16 +525,13 @@ d3.json("/entries.json?group_by=type", function(root) {
     adjustCanvasSize();
   }
 
+  // view
   function getViewport() {
     var $sheet = $('#cheatsheet');
     return {x: -pan.x, y: -pan.y, width: $sheet.width(), height: $sheet.height()};
   }
 
-  function showSearchBox(e) {
-    $('#search-box').show().find('input').focus();
-    return false;
-  }
-
+  // controller
   function search() {
     var q = $('#q').val(),
       candidates = [];
@@ -707,6 +549,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     updateSearchCandidates(candidates);
   }
 
+  // model -> view
   function updateSearchCandidates(candidates) {
     var li = d3.select('#candidates').selectAll('li').data(candidates),
       cur = d3.select('#candidates .selected');
@@ -733,6 +576,7 @@ d3.json("/entries.json?group_by=type", function(root) {
       $('#search-next').trigger('click');
   }
 
+  // controller
   function jumpToCandidate($next, $cur) {
     if (!$cur || !$cur.length)
       $cur = $('#candidates .selected');
@@ -744,6 +588,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     });
   }
 
+  // controller
   $('#search-next, #search-prev').on('click', function(e) {
     e.preventDefault();
     var $cur = $('#candidates .selected'),
@@ -755,8 +600,15 @@ d3.json("/entries.json?group_by=type", function(root) {
     jumpToCandidate($next, $cur);
   });
 
-  $('#search-box input').on('keyup', debounce(search, 100));
+  // controller
+  $('#search-box input').on('keyup', _.debounce(search, 100));
 
+  function focusSearchBox() {
+    $('#search-box input').focus();
+    return false;
+  }
+
+  // controller
   Mousetrap
     .bind('h', selectLeft)
     .bind('j', selectDown)
@@ -766,8 +618,9 @@ d3.json("/entries.json?group_by=type", function(root) {
     .bind('d', panDown)
     .bind('f', panUp)
     .bind('g', panRight)
-    .bind('/', showSearchBox);
+    .bind('/', focusSearchBox);
 
+  // controller
   $('#layout button').each(function(i, each){
     var $each = $(each);
     Mousetrap.bind(i + 1 + '', function() {
@@ -778,6 +631,7 @@ d3.json("/entries.json?group_by=type", function(root) {
     });
   })
 
+  // controller
   function layoutButtonClicked($button) {
     if ($button.is('.active'))
       return;
@@ -796,36 +650,3 @@ d3.json("/entries.json?group_by=type", function(root) {
 
   $(function() { app.run('#' + (location.hash || '/sort/alphabetical')); });
 });
-
-function isConfusable(a, b) {
-  if (a === b)
-    return {type: 'identical'};
-
-  //a = a.replace("'", '');
-  //b = b.replace("'", '');
-
-  if (a.length !== b.length) {
-    var longer = a.length > b.length ? a : b;
-    var shorter = a.length > b.length ? b : a;
-    for (i in longer) {
-      var withApostrophe = shorter.substring(0, i) + "'" + shorter.substring(i);
-      if (withApostrophe === longer)
-         return {type: 'yhy'};
-    }
-    return null;
-  }
-
-  var diffs = 0, diffIndex;
-  for (i in a) {
-    if (a[i] !== b[i]) {
-       diffs += 1;
-       diffIndex = i;
-    }
-  }
-
-  if (diffs === 1)
-    return {type: 'singleletter', index: diffIndex};
-
-  return null;
-}
-
