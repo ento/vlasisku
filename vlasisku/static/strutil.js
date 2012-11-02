@@ -11,6 +11,9 @@ function slugify(word) {
 }
 
 function isConfusable(a, b) {
+  if (!a || !b)
+    return null;
+
   if (a === b)
     return {type: 'identical'};
 
@@ -37,7 +40,7 @@ function isConfusable(a, b) {
   }
 
   if (diffs === 1)
-    return {type: 'singleletter', index: diffIndex};
+    return {type: 'singleletter', index: parseInt(diffIndex)};
 
   return null;
 }
