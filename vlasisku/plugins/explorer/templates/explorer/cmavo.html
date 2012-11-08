@@ -1,0 +1,54 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <title>explore: cmavo</title>
+    <link rel="stylesheet" href="{{url_for('explorer.static', filename='bootstrap/css/bootstrap.min.css')}}" type="text/css"/>
+{% assets "css_app" %}
+    <link rel="stylesheet" href="{{ ASSET_URL }}" type="text/css" media="screen, projection, print"/>
+{% endassets %}
+
+
+    <script type="text/javascript" src="https://raw.github.com/etgryphon/stativus/master/stativus.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/js-signals/0.8.1/js-signals.min.js"></script>
+    <script type="text/javascript" src="https://raw.github.com/millermedeiros/Hasher/master/dist/js/hasher.min.js"></script>
+    <script type="text/javascript" src="https://raw.github.com/millermedeiros/crossroads.js/master/dist/crossroads.js"></script>
+    <script type="text/javascript" src="https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js"></script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="sidebar">
+        <div id="settings">
+          <h2>explore: cmavo</h2>
+          <div id="layout">
+            <div class="btn-group">
+              <button class="btn active" data-value="alphabet"><span class="kbd"><kbd>1</kbd></span>ABC</button>
+              <button class="btn" data-value="length"><span class="kbd"><kbd>2</kbd></span>Length</button>
+              <button class="btn" data-value="chapter" selected="1"><span class="kbd"><kbd>3</kbd></span>CLL</button>
+            </div>
+          </div>
+          <div id="search-box">
+            <div class="input-append">
+              <span class="kbd"><kbd>/</kbd></span>
+              <input id="q" type="text" autocomplete="off"/>
+              <button id="search-prev" class="btn"><i class="icon icon-chevron-up"></i></button>
+              <button id="search-next" class="btn"><i class="icon icon-chevron-down"></i></button>
+            </div>
+          </div>
+        </div>
+        <ul id="results">
+        </ul>
+      </div>
+      <div id="inspector"></div>
+      <div id="main"></div>
+    </div>
+{% assets "js_lib" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %}
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min.js"></script>
+    <script type="text/javascript" src="{{url_for('explorer.static', filename='bootstrap/js/bootstrap.min.js')}}"></script>
+{% assets "js_app" %}
+    <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+{% endassets %}
+  </body>
+</html>

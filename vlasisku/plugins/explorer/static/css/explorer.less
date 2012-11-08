@@ -1,0 +1,218 @@
+@import "variables.less";
+
+html,
+body {
+  height: 100%;
+}
+
+svg {
+  overflow: hidden;
+}
+
+#wrapper {
+  height: 100%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+#sidebar {
+  border-right: 1px solid desaturate(darken(@base3, 30%), 50%);
+  bottom: 0;
+  height: 100%;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 8px;
+  position: fixed;
+  top: 0;
+  width: 220px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#settings {
+  position: fixed;
+  top: 0;
+  left: 8px;
+  background-color: @base3;
+}
+
+#inspector {
+  background-color: @base2;
+  position: fixed;
+  top: 0;
+  left: 237px;
+  right: 0;
+  height: 50px;
+}
+
+#main {
+  height: 100%;
+  overflow: scroll;
+  margin-top: 50px;
+  margin-left: 237px;
+}
+
+#canvas {
+    display: block;
+}
+
+.entry {
+  cursor: pointer;
+
+  text {
+    alignment-baseline: text-before-edge;
+    fill: @base00;
+    font-size: 16px;
+    font-family: monospace;
+    text-anchor: start;
+
+    tspan {
+      alignment-baseline: text-before-edge;
+    }
+  }
+
+  &.hover text {
+    fill: @base3;
+  }
+
+  .highlight {
+    fill: @magenta;
+    font-weight: 900;
+    stroke-width: 1px;
+    stroke: @magenta;
+  }
+
+  &.hover .highlight {
+    fill: @base3;
+    stroke-width: 0;
+  }
+}
+
+.focused .entry {
+  text {
+    fill: @base2;
+  }
+
+  &.focus text {
+    fill: @base01;
+  }
+
+  &.focus-center text {
+    fill: @base02;
+    font-weight: bold;
+  }
+
+  &.hover text {
+    fill: @base3;
+  }
+}
+
+#cursor {
+  fill: @blue;
+}
+
+#layout {
+  margin-bottom: 5px;
+
+  .btn {
+    padding: 4px 10px;
+  }
+
+  .kbd {
+    margin-right: 2px;
+    margin-top: -1px;
+    vertical-align: text-top;
+  }
+}
+
+.kbd {
+  display: inline-block;
+  text-align: center;
+  line-height: 12px;
+}
+
+kbd {
+  border: 1px solid @base1;
+  border-radius: 2px;
+  display: inline-block;
+  font-size: 9px;
+  height: 12px;
+  min-width: 12px;
+  padding: 0;
+}
+
+#search-box {
+  input {
+    width: 130px;
+  }
+
+  .btn {
+    padding: 4px 6px;
+  }
+
+  .kbd {
+    padding-top: 6px;
+    margin-right: 4px;
+  }
+}
+
+#results {
+  margin: 0;
+  padding-top: 130px;
+
+  li {
+    background-color: @base2;
+    cursor: pointer;
+    list-style-type: none;
+    padding: 0 4px;
+  }
+
+  .selected {
+    background-color: @blue;
+    color: @base3;
+  }
+}
+
+#inspector {
+  color: @base01;
+  line-height: 50px;
+  padding-left: 10px;
+
+  span {
+    display: inline-block;
+  }
+
+  .word {
+    font-size: 30px;
+  }
+
+  .grammarclass {
+    font-size: 18px;
+    margin: 0 6px;
+  }
+
+  .description {
+    line-height: 1.4;
+    max-height: 50px;
+    max-width: 650px;
+  }
+
+  &.error .description {
+    color: @red;
+  }
+}
+
+#backdrop {
+  rect {
+    fill: @base0;
+    fill-opacity: 0.5;
+    stroke: none;
+    display: none;
+  }
+
+  &.in rect {
+    display: none;
+  }
+}
