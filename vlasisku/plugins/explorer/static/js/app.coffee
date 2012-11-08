@@ -130,6 +130,7 @@ App:: =
     entryHeight: 20
     entryPadding: 0.2
     inspectorHeight: 50
+    contentMargin: 10
 
   init: (root) ->
     @initializeRouting()
@@ -174,6 +175,9 @@ App:: =
 
     hasher.initialized.add parseHash #parse initial hash
     hasher.changed.add parseHash #parse hash changes
+
+  isFocused: ->
+    @getCurrentStateName(@globalStates.focus) is "focused"
 
   isRunning: ->
     @getCurrentStateName(@globalStates.app) is "running"

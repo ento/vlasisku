@@ -15,6 +15,21 @@ app.views.NodesView = Backbone.View.extend
     app.inspectorTargetChanged.add _.bind @updateCursor, @
     app.searchResultChanged.add _.bind @highlightSearchHits, @
 
+    d3.select("#canvas").call d3.behavior.drag()
+      .origin(Object)
+      .on('drag', _.bind((d) ->
+        if not app.isFocused()
+          return
+
+        d.tx = d.x + (d3.event.x - d.x) * 0.8
+        d.ty = d.y + (d3.event.y - d.y) * 0.8
+        d3.select("#content")
+          .attr("transform", "translate(" + (d.tx + app.C.contentMargin) + "," + (d.ty + app.C.contentMargin) + ")")
+      , @))
+      .on 'dragend', (d) ->
+        d.x = d.tx
+        d.y = d.ty
+
     Mousetrap
       .bind("h", _.bind @inspectLeft, @)
       .bind("j", _.bind @inspectDown, @)
@@ -24,12 +39,17 @@ app.views.NodesView = Backbone.View.extend
         app.sendEvent "blur"
 
   initializeNodes: ->
-    @svg = d3.select(@el)
+    @canvas = d3.select(@el)
       .append("svg")
       .attr("id", "canvas")
+      .attr("pointer-events", "all")
+      .datum({x: 0, y: 0, tx: 0, ty: 0})
+
+    @svg = @canvas
       .append("g")
       .attr("id", "content")
-      .attr("transform", "translate(10, 10)")
+      .attr("transform", "translate(" + app.C.contentMargin + "," + app.C.contentMargin + ")")
+
     @svg.append("g")
       .attr("id", "cursor")
       .attr("transform", "translate(0,-10000)")
@@ -37,11 +57,6 @@ app.views.NodesView = Backbone.View.extend
       .attr("width", app.C.entryWidth)
       .attr("height", app.C.entryHeight)
       .attr "transform", "translate(0,-3)"
-    @svg.append("g")
-      .attr("id", "backdrop")
-      .append("rect")
-      .attr("width", 1000)
-      .attr "height", 1000
 
     entries = @svg.selectAll(".entry")
       .data(@model.get('nodes'))
@@ -90,10 +105,13 @@ app.views.NodesView = Backbone.View.extend
   events:
     "click #canvas .entry text, #canvas .entry rect": (e) ->
       app.sendEvent "focus", d3.select(e.target).datum().word
+      @resetContentMargin()
       false
 
-    "click #canvas, #backdrop": ->
+    "click #canvas": ->
+      console.log 'blur'
       app.sendEvent "blur"
+      @resetContentMargin()
 
   revealInspectorTarget: ->
     @camera.panToShow app.getInspectorTarget()
@@ -128,18 +146,23 @@ app.views.NodesView = Backbone.View.extend
       .attr("width", canvasWidth)
       .attr("height", canvasHeight)
 
-    d3.select("#backdrop rect")
-      .transition()
-      .duration(1000)
-      .attr("width", canvasWidth)
-      .attr("height", canvasHeight)
-
   updateCanvasPan: ->
     d3.select(@el)
       .transition()
       .duration(1000)
       .tween("scrollLeft", app.helper.scrollLeftTween -@camera.pan.x)
       .tween "scrollTop", app.helper.scrollTopTween -@camera.pan.y
+
+  resetContentMargin: ->
+    d = d3.select("#canvas").datum()
+    d.x = 0
+    d.y = 0
+    d.tx = 0
+    d.ty = 0
+    d3.select("#content")
+      .transition()
+      .duration(1000)
+      .attr("transform", "translate(" + app.C.contentMargin + "," + app.C.contentMargin + ")")
 
   updateMainView: (options) ->
     layout = app.getCurrentLayout()
@@ -156,9 +179,6 @@ app.views.NodesView = Backbone.View.extend
       layout.coords.xMap[d.word] * 4
     ).attr "transform", app.views.helper.getTransformation
 
-    # move backdrop to the very end
-    $("#backdrop").appendTo "#content"
-    # place focused entries on top of the backdrop
     @layoutFocus focus
 
     @updateCursor null
@@ -179,12 +199,10 @@ app.views.NodesView = Backbone.View.extend
   layoutFocus: (focus) ->
     @resetFocus()
     unless focus
-      d3.select("#backdrop").attr "class", ""
-      @svg.classed "focused", false
+      @canvas.classed "focused", false
       return
     else
-      d3.select("#backdrop").attr "class", "in"
-      @svg.classed "focused", true
+      @canvas.classed "focused", true
 
     d3.selectAll(".entry").each (d, i) ->
       conf = d.confusable
@@ -192,7 +210,7 @@ app.views.NodesView = Backbone.View.extend
       selection = d3.select(this)
       selection.classed("focus", true).classed conf.type, true
       selection.classed "focus-center", true  if conf.type is "identical"
-      $(this).insertAfter "#backdrop"
+      $(this).appendTo $('#content')
 
   updateCursor: (target, options) ->
     hovered = d3.select(".entry.hover")
