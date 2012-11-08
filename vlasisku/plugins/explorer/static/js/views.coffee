@@ -10,7 +10,7 @@ app.views.NodesView = Backbone.View.extend
     @initializeNodes()
     @camera = new app.views.Camera
 
-    app.layoutChanged.add _.bind @updateMainView, @
+    app.fieldChanged.add _.bind @updateMainView, @
     app.panChanged.add _.bind @updateCanvasPan, @
     app.inspectorTargetChanged.add _.bind @updateCursor, @
     app.searchResultChanged.add _.bind @highlightSearchHits, @
@@ -170,21 +170,15 @@ app.views.NodesView = Backbone.View.extend
       panToShow: false
     , options)
 
-    # TODO
-    layout.applyBaseLayout app.field.get('nodes')
-    focus = app.statechart.getState("focused", app.globalStates.focus).getData("target")
-    layout.applyFocusLayout app.field.get('nodes'), focus
-
     @svg.transition().duration(1000).selectAll(".entry").delay((d, i) ->
       layout.coords.xMap[d.word] * 4
     ).attr "transform", app.views.helper.getTransformation
 
-    @layoutFocus focus
+    @layoutFocus()
 
     @updateCursor null
       animate: true
 
-    app.field.rebuildIndex()
     @updateCanvasSize()
 
     if options.panToShow
@@ -196,9 +190,9 @@ app.views.NodesView = Backbone.View.extend
     d3.select(".focus-center").classed "focus-center", false
     d3.selectAll(".entry.focus").classed "focus", false
 
-  layoutFocus: (focus) ->
+  layoutFocus: () ->
     @resetFocus()
-    unless focus
+    unless app.isFocused()
       @canvas.classed "focused", false
       return
     else
@@ -332,7 +326,7 @@ app.views.SearchView = Backbone.View.extend
 app.views.LayoutView = Backbone.View.extend
   initialize: ->
     self = this
-    app.layoutChanged.add _.bind @updateActiveButton, @
+    app.coordsChanged.add _.bind @updateActiveButton, @
     @$el.find("button").each (i, each) ->
       $each = $(each)
       Mousetrap.bind i + 1 + "", ->

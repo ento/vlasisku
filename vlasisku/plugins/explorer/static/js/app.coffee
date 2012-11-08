@@ -117,7 +117,8 @@ class App
       .state("inspector")
       .data("target")
 
-    @layoutChanged = new signals.Signal
+    @coordsChanged = new signals.Signal
+    @fieldChanged = new signals.Signal
     @panChanged = new signals.Signal
     @inspectorTargetChanged = new signals.Signal
     @searchResultChanged = new signals.Signal
@@ -137,6 +138,8 @@ App:: =
     initStates = {}
     initStates[@globalStates.app] = 'initializing'
     @statechart.initStates initStates
+
+    @coordsChanged.add _.bind @updateField, @
 
     @field = new app.models.Field
       nodes: root.cmavo.concat(root["experimental cmavo"])
@@ -177,7 +180,8 @@ App:: =
     hasher.changed.add parseHash #parse hash changes
 
   isFocused: ->
-    @getCurrentStateName(@globalStates.focus) is "focused"
+    focusStateName = @getCurrentStateName(@globalStates.focus)
+    focusStateName is "focused" or focusStateName is "reFocusing"
 
   isRunning: ->
     @getCurrentStateName(@globalStates.app) is "running"
@@ -226,5 +230,14 @@ App:: =
     hasher.changed.active = false #disable changed signal
     hasher.setHash hash #set hash without dispatching changed signal
     hasher.changed.active = true #re-enable signal
+
+  updateField: ->
+    layout = @getCurrentLayout()
+    layout.applyBaseLayout @field.get('nodes')
+    focus = @statechart.getState("focused", @globalStates.focus).getData("target")
+    layout.applyFocusLayout @field.get('nodes'), focus
+    @field.rebuildIndex()
+
+    @fieldChanged.dispatch.apply @fieldChanged, arguments
 
 window.app = new App()

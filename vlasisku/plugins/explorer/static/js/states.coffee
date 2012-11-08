@@ -11,7 +11,7 @@ app.statechart = statechart = Stativus.createStatechart()
 layoutState =
   globalConcurrentState: globalStates.layout
   enterState: ->
-    app.layoutChanged.dispatch()
+    app.coordsChanged.dispatch()
     app.serializer.routeChanged.dispatch()
 
   changeLayout: (name) ->
@@ -77,7 +77,7 @@ focusState =
 statechart.addState "focused",
   enterState: ->
     d = app.field.focus @getData "target"
-    app.layoutChanged.dispatch
+    app.coordsChanged.dispatch
       panToShow: d
 
     app.serializer.routeChanged.dispatch()
@@ -91,7 +91,7 @@ statechart.addState "reFocusing",
 statechart.addState "notFocused",
   enterState: ->
     app.field.focus null
-    app.layoutChanged.dispatch()
+    app.coordsChanged.dispatch()
     app.serializer.routeChanged.dispatch()
 , focusState
 
