@@ -37,6 +37,10 @@ js_lib_assets = Bundle(
     js_lib_assets_flat,
     'explorer/js/libs/d3.v2.min.js',
     'explorer/js/libs/underscore-min.js',
+    'explorer/js/libs/hasher.min.js',
+    'explorer/js/libs/crossroads.min.js',
+    'explorer/js/libs/stativus-min.js',
+    'explorer/js/libs/mousetrap.min.js',
     output='explorer/js/gen/libs.js',
     )
 css_app_assets = Bundle(
