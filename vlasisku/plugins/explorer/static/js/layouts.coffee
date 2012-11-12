@@ -170,7 +170,8 @@ app.layouts.ABCLayout::categorize = (d) ->
 class app.layouts.LengthLayout extends Layout
 
 app.layouts.LengthLayout::categorize = (d) ->
-    mainIndex: d.word.length
+    yhy = d.word.match(/\'/g) or []
+    mainIndex: d.word.length * 2 - yhy.length
     subIndex: @letters.indexOf(d.word[0])
 
 class app.layouts.ChapterLayout extends Layout
