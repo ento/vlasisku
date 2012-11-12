@@ -140,7 +140,7 @@ app.views.NodesView = Backbone.View.extend
   updateCanvasSize: ->
     bounds = @model.getNodeBounds()
     canvasWidth = bounds.w
-    canvasHeight = bounds.h + app.C.inspectorHeight
+    canvasHeight = bounds.h + app.C.inspectorHeight + app.C.contentMargin
 
     d3.select("#canvas")
       .transition()
