@@ -117,7 +117,12 @@ statechart.addState "notFocused",
 searchState =
   globalConcurrentState: globalStates.search
   search: (target) ->
-    @statechart.getState("searching", @globalConcurrentState).setData "target", target
+    searchingState = @statechart.getState("searching", @globalConcurrentState)
+
+    if target is searchingState.getData "target"
+      return
+
+    searchingState.setData "target", target
     if @name is "searching"
       @goToState "reSearching"
     else
