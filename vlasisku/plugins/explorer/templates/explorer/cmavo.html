@@ -14,27 +14,39 @@
     <div id="wrapper">
       <div id="sidebar">
         <div id="settings">
-          <h2>explore: cmavo</h2>
+          <h1>explore: cmavo</h1>
           <div id="layout">
             <div class="btn-group">
-              <button class="btn active" data-value="alphabet"><span class="kbd"><kbd>1</kbd></span>ABC</button>
-              <button class="btn" data-value="length"><span class="kbd"><kbd>2</kbd></span>Length</button>
-              <button class="btn" data-value="chapter" selected="1"><span class="kbd"><kbd>3</kbd></span>CLL</button>
+              <button class="btn active" data-value="alphabet"><span class="kbd-wrap"><kbd>1</kbd></span>ABC</button>
+              <button class="btn" data-value="length"><span class="kbd-wrap"><kbd>2</kbd></span>Length</button>
+              <button class="btn" data-value="chapter" selected="1"><span class="kbd-wrap"><kbd>3</kbd></span>CLL</button>
             </div>
           </div>
           <div id="search-box">
             <div class="input-append">
-              <span class="kbd"><kbd>/</kbd></span>
+              <span class="kbd-wrap"><kbd>/</kbd></span>
               <input id="q" type="text" autocomplete="off"/>
-              <button id="search-prev" class="btn"><i class="icon icon-chevron-up"></i></button>
-              <button id="search-next" class="btn"><i class="icon icon-chevron-down"></i></button>
+              <button id="search-prev" class="btn"><i class="icon icon-caret-up"></i></button>
+              <button id="search-next" class="btn"><i class="icon icon-caret-down"></i></button>
             </div>
           </div>
         </div>
         <ul id="results">
         </ul>
       </div>
-      <div id="inspector"></div>
+      <div id="inspector-box">
+        <i id="lock-state" class="icon-unlock"></i>
+        <div id="inspector"></div>
+        <div class="actions">
+          <ul>
+            <li id="action-toggle-lock"><kbd>a</kbd><a>lock</a></li>
+            <li id="action-reveal"><kbd>s</kbd><a>reveal</a></li>
+            <li id="action-open-vlasisku"><kbd>d</kbd><a target="_blank">vlasisku</a></li>
+            <li id="action-open-jufsisku"><kbd>f</kbd><a target="_blank">jufsisku</a></li>
+            <li id="action-toggle-link"><kbd>g</kbd><a>link</a><input id="link-input" class="mousetrap" style="display: none;"/></li>
+          </ul>
+        </div>
+      </div>
       <div id="main"></div>
     </div>
 {% assets "js_lib" %}

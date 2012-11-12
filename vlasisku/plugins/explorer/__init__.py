@@ -44,8 +44,11 @@ js_lib_assets = Bundle(
     output='explorer/js/gen/libs.js',
     )
 css_app_assets = Bundle(
-    'explorer/css/explorer.less',
-    filters='less',
+    'explorer/css/font-awesome.css',
+    Bundle(
+        'explorer/css/explorer.less',
+        filters='less',
+        ),
     output='explorer/css/gen/explorer.css',
     )
 

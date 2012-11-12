@@ -1,6 +1,6 @@
 window.app = window.app || {}
 
-globalStates = ["layout", "inspector", "focus", "search", "app"]
+globalStates = ["layout", "inspector", "focus", "search", "lock", "app"]
 globalStates.forEach (state) ->
   globalStates[state] = state
 
@@ -28,6 +28,9 @@ statechart.addState "chapter", layoutState
 inspectorState =
   globalConcurrentState: globalStates.inspector
   inspect: (target, reveal) ->
+    if app.getCurrentStateName("lock") is "locked"
+      return
+
     inspectingState = @statechart.getState("inspecting", @globalConcurrentState)
     inspectingState.setData "target", (if target.word then target.word else target)
     inspectingState.setData "reveal", reveal
@@ -60,6 +63,21 @@ statechart.addState "reInspecting",
 
 statechart.addState "notInspecting", inspectorState
 
+# lock
+lockState =
+  globalConcurrentState: globalStates.lock
+  enterState: ->
+    app.inspectorLockChanged.dispatch this.name is "locked"
+    app.serializer.routeChanged.dispatch()
+
+  toggleLock: () ->
+    if this.name is "locked"
+      @goToState "notLocked"
+    else
+      @goToState "locked"
+
+statechart.addState "locked", lockState
+statechart.addState "notLocked", lockState
 # focus
 focusState =
   globalConcurrentState: globalStates.focus

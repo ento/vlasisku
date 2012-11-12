@@ -109,9 +109,11 @@ app.views.NodesView = Backbone.View.extend
       false
 
     "click #canvas": ->
-      console.log 'blur'
       app.sendEvent "blur"
       @resetContentMargin()
+
+    "scroll": ->
+      @updateCameraPan()
 
   revealInspectorTarget: ->
     @camera.panToShow app.getInspectorTarget()
@@ -152,6 +154,10 @@ app.views.NodesView = Backbone.View.extend
       .duration(1000)
       .tween("scrollLeft", app.helper.scrollLeftTween -@camera.pan.x)
       .tween "scrollTop", app.helper.scrollTopTween -@camera.pan.y
+
+  updateCameraPan: ->
+    @camera.pan.x = -@$el.scrollLeft()
+    @camera.pan.y = -@$el.scrollTop()
 
   resetContentMargin: ->
     d = d3.select("#canvas").datum()
@@ -244,8 +250,37 @@ app.views.NodesView = Backbone.View.extend
 app.views.InspectorView = Backbone.View.extend
   initialize: ->
     app.inspectorTargetChanged.add _.bind @render, @
+    app.inspectorLockChanged.add _.bind @updateLock, @
+    app.permalinkChanged.add _.bind @updateLink, @
+
+    self = @
+    @$(".actions li").each () ->
+      $link = $(this).find('a')
+      key = $(this).find('kbd').text()
+      Mousetrap.bind key, ->
+        $link.trigger 'click', true
+        false
+
+  events:
+    "click #action-toggle-lock a": "handleToggleLock"
+    "click #action-reveal a": "handleReveal"
+    "click #action-open-vlasisku a": "handleOpenVlasisku"
+    "click #action-open-jufsisku a": "handleOpenJufsisku"
+    "click #action-toggle-link a": "handleToggleLink"
+
+  getFullUrl: (fragment) ->
+    location.href + '#/' + fragment
+
+  getVlasiskuUrl: (word) ->
+    'http://vlasisku.lojban.org/vlasisku/' + word
+
+  getJufsiskuUrl: (word) ->
+    'http://lojban.lilyx.net/jufsisku/?q=' + encodeURIComponent(word)
 
   render: (d) ->
+    @$("#action-open-vlasisku a").attr "href", @getVlasiskuUrl d.word
+    @$("#action-open-jufsisku a").attr "href", @getJufsiskuUrl d.word
+
     unless d
       @$el.html ""
       return
@@ -262,7 +297,38 @@ app.views.InspectorView = Backbone.View.extend
       "</span>"]
 
     classOp = if hasDefinition then "removeClass" else "addClass"
-    @$el[classOp]("error").html text.join(" ")
+    @$('#inspector')[classOp]("error").html text.join(" ")
+
+  updateLink: (fragment) ->
+    @$("#link-input").val @getFullUrl fragment
+
+  updateLock: (locked) ->
+    @$("#action-toggle-lock a").text(if locked then 'unlock' else 'lock')
+    @$("#lock-state")[if locked then 'removeClass' else 'addClass']('icon-unlock')
+    @$("#lock-state")[if locked then 'addClass' else 'removeClass']('icon-lock')
+
+  handleReveal: ->
+    app.revealInspectorTarget()
+
+  handleToggleLock: ->
+    app.sendEvent "toggleLock"
+
+  handleOpenVlasisku: (e, mousetrap) ->
+    if mousetrap
+      location.href = $(e.target).attr "href"
+      return false
+    true
+
+  handleOpenJufsisku: (e, mousetrap) ->
+    if mousetrap
+      location.href = $(e.target).attr "href"
+      return false
+    true
+
+  handleToggleLink: ->
+    $input = @$("#link-input").toggle()
+    if $input.is(":visible")
+      $input.select().focus()
 
 
 app.views.SearchView = Backbone.View.extend
@@ -271,7 +337,7 @@ app.views.SearchView = Backbone.View.extend
     app.searchResultChanged.add _.bind @updateSearchResult, @
     app.searchQueryChanged.add _.bind @updateSearchQuery, @
 
-    Mousetrap.bind "/", @focusSearchBox
+    Mousetrap.bind "/", @focusSearchInput
 
   events:
     "click #search-next, #search-prev": (e) ->
@@ -292,7 +358,7 @@ app.views.SearchView = Backbone.View.extend
   inspectResult: (d) ->
     app.sendEvent "inspect", d, true
 
-  focusSearchBox: ->
+  focusSearchInput: ->
     $("#search-box input").focus()
     false
 
@@ -352,12 +418,6 @@ class app.views.Camera
     @pan =
       x: 0
       y: 0
-
-    Mousetrap
-      .bind("s", @panLeft)
-      .bind("d", @panDown)
-      .bind("f", @panUp)
-      .bind("g", @panRight)
 
   panLeft: ->
     @panBy -app.C.entryWidth * 0.5

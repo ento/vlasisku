@@ -116,13 +116,16 @@ class App
       .data("target")
       .state("inspector")
       .data("target")
+      .state("lock")
 
     @coordsChanged = new signals.Signal
     @fieldChanged = new signals.Signal
     @panChanged = new signals.Signal
     @inspectorTargetChanged = new signals.Signal
+    @inspectorLockChanged = new signals.Signal
     @searchResultChanged = new signals.Signal
     @searchQueryChanged = new signals.Signal
+    @permalinkChanged = new signals.Signal
 
 App:: =
   C:
@@ -130,7 +133,7 @@ App:: =
     entryWidth: 54
     entryHeight: 20
     entryPadding: 0.2
-    inspectorHeight: 50
+    inspectorHeight: 70
     contentMargin: 10
 
   init: (root) ->
@@ -156,7 +159,7 @@ App:: =
       el: $("#main")
       model: @field
     @inspectorView = new app.views.InspectorView
-      el: $("#inspector")
+      el: $("#inspector-box")
     @searchView = new app.views.SearchView
       el: $("#search-box")
     @layoutView = new app.views.LayoutView
@@ -169,7 +172,7 @@ App:: =
       crossroads.parse newHash
     self = this
     @serializer.routeChanged.add ->
-      self.setHashSilently self.serializer.asRoute(self.statechart)
+      self.permalinkChanged.dispatch self.serializer.asRoute(self.statechart)
 
     #setup crossroads
     crossroads.normalizeFn = @serializer.normalizeParams
@@ -195,7 +198,7 @@ App:: =
     if @getCurrentStateName(@globalStates.inspector) is "notInspecting"
       @sendEvent "inspect", @field.getAnyNode()
     else
-      @nodesView.revealInspectorTarget()
+      @revealInspectorTarget()
 
   getCurrentLayout: ->
     @layouts[@getCurrentLayoutName()]
@@ -222,6 +225,9 @@ App:: =
     y: -@nodesView.camera.pan.y
     width: @nodesView.$el.width()
     height: @nodesView.$el.height()
+
+  revealInspectorTarget: ->
+    @nodesView.revealInspectorTarget()
 
   sendEvent: ->
     @statechart.sendEvent.apply @statechart, arguments
