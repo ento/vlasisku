@@ -269,7 +269,8 @@ app.views.InspectorView = Backbone.View.extend
     "click #action-toggle-link a": "handleToggleLink"
 
   getFullUrl: (fragment) ->
-    location.href + '#/' + fragment
+    baseUrl = location.protocol + '//' + location.hostname + (if location.port then (":" + location.port) else "") + location.pathname + (if location.search then location.search else "")
+    baseUrl + '#/' + fragment
 
   getVlasiskuUrl: (word) ->
     'http://vlasisku.lojban.org/vlasisku/' + word
