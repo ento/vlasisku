@@ -179,4 +179,4 @@ class app.layouts.ChapterLayout extends Layout
 app.layouts.ChapterLayout::categorize = (d, cll) ->
     chapter = cll.findChapter(d)
     mainIndex: chapter[0]
-    subIndex: chapter[1]
+    subIndex: cll.gcIndex[d.grammarclass] or 0
